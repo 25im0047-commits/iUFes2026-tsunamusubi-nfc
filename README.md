@@ -9,6 +9,7 @@ iU FesのNFCスタンプラリーを動作確認するTanStack Startプロトタ
 - [実装状況・確定事項・残作業](docs/implementation-status.md)：次の実装範囲を確認する
 - [参加者フローと回答仕様](docs/participant-flow.md)：今回確定した仕様・回答の扱い・将来のクイズ設計
 - [開発・テスト・レビュー手順](CONTRIBUTING.md)：起動、保存エラーの再現、変更前の確認
+- [モバイル表示・軽量化の検証](docs/mobile-verification.md)：画面サイズ・修正点・実機確認の範囲
 - [変更履歴](CHANGELOG.md)：修正内容と検証結果
 - [Slack SSOT](https://iu-people.slack.com/docs/T0100UQSVME/F0C4QA5M1NV)：企画上の決定と未決事項の原本
 
@@ -49,7 +50,7 @@ npm test
 npm run build
 ```
 
-PRとmainへのpushでは、GitHub ActionsでWindows/Linux、Node.js 22.12.0/24のチェックと、Linux / Node 24のChromiumブラウザーテストを実行します。ブラウザーテストの起動方法は[開発手順](CONTRIBUTING.md)を参照してください。各PRのChecksで結果を確認してください。
+PRとmainへのpushでは、GitHub ActionsでWindows/Linux、Node.js 22.12.0/24のチェックと、Linux / Node 24のChromium・WebKitブラウザーテストを実行します。ブラウザーテストの起動方法は[開発手順](CONTRIBUTING.md)を参照してください。各PRのChecksで結果を確認してください。
 
 ## Vercelへの公開
 

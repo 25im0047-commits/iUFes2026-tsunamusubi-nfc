@@ -19,12 +19,14 @@ npm run build
 
 単体テストはNode標準のtest runnerで実行します。Node 22で表示される型除去機能の実験的警告はテスト失敗ではありません。CIはWindows/LinuxとNode 22.12.0/24で同じチェックを実行します。
 
-表示や参加者フローを変更した場合は、Playwrightのブラウザーテストも実行してください。初回のみChromiumをインストールします。
+表示や参加者フローを変更した場合は、Playwrightのブラウザーテストも実行してください。初回のみChromiumとWebKitをインストールします。
 
 ```bash
-npx playwright install chromium
+npx playwright install chromium webkit
 npm run test:e2e
 ```
+
+テストはChromiumとモバイル・タッチ設定のWebKitで各15件（計30件）を実行します。[モバイル検証記録](docs/mobile-verification.md)に画面サイズと実機で残る確認をまとめています。スクリーンショットは`test-results/`に出力され、次の実行時に置き換わります。
 
 テストは専用のブラウザー環境を使い、開発サーバーを`http://127.0.0.1:3002`で起動します。モーダルの中央配置・スクロール・画面サイズ変更・フォーカス復帰と、NFCから全取得までのフロー・保存失敗からの再試行を確認します。
 
@@ -68,6 +70,7 @@ npm run test:deployment
 | `src/styles.css` | 画面スタイル |
 | `tests/*.test.mjs` | 保存障害・不正データ・重複取得・URLの回帰テスト |
 | `tests/browser/rally.spec.ts` | モーダルの表示・キーボード操作・参加者フローのブラウザーテスト |
+| `tests/browser/responsive.spec.ts` | 7サイズの画面遷移・はみ出し・画像サイズ・小画面入力の検証 |
 | `.github/workflows/ci.yml` | PRとmainの検証 |
 
 `src/routeTree.gen.ts`は自動生成ファイルです。ルートを変更していない場合、改行だけの差分をPRに含めないでください。

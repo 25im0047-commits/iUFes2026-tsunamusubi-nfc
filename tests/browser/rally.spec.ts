@@ -81,13 +81,15 @@ for (const viewport of [
 
 test("dialog focus starts at its heading and returns to the triggering card", async ({
   page,
+  hasTouch,
 }) => {
   await seedUnlocked(page);
   await page.reload();
   const card = page.getByRole("button", {
     name: "良いおばけ 05ともう一度話す",
   });
-  await card.click();
+  if (hasTouch) await card.tap();
+  else await card.click();
   await expect(
     page.getByRole("heading", { name: "良いおばけ 05", exact: true }),
   ).toBeFocused();

@@ -38,7 +38,7 @@ function RallyPage() {
     ghost: Ghost;
     nextScreen: Screen;
   } | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, SurveyAnswers>>({});
+  const drafts = useRef<Record<string, SurveyAnswers>>({});
   const [message, setMessage] = useState("");
   const [storageIssue, setStorageIssue] = useState<StorageIssue>(null);
   const goodComplete = hasAllGoodStamps(progress);
@@ -121,11 +121,7 @@ function RallyPage() {
         : "map";
     setActiveGhostId(null);
     setEarned({ ghost, nextScreen });
-    setDrafts((previous) => {
-      const copy = { ...previous };
-      delete copy[ghost.id];
-      return copy;
-    });
+    delete drafts.current[ghost.id];
     return {};
   }
 
@@ -367,13 +363,10 @@ function RallyPage() {
           key={activeGhost.id}
           ghost={activeGhost}
           done={isGhostComplete(progress, activeGhost.id)}
-          draft={drafts[activeGhost.id] || emptyDraft}
-          onDraft={(answers) =>
-            setDrafts((previous) => ({
-              ...previous,
-              [activeGhost.id]: answers,
-            }))
-          }
+          draft={drafts.current[activeGhost.id] || emptyDraft}
+          onDraft={(answers) => {
+            drafts.current[activeGhost.id] = answers;
+          }}
           onFinish={(answers) => finishConversation(activeGhost, answers)}
           onClose={() => setActiveGhostId(null)}
           storageNotice={storageNotice}
@@ -451,7 +444,12 @@ function StatusRow({
       className={`status-row ${ghost.type} ${done ? "done is-actionable" : ""}`}
       type="button"
       disabled={!done}
-      onClick={onOpen}
+      onClick={(event) => {
+        // WebKit does not focus buttons on pointer activation. Give the dialog
+        // a reliable opener so closing it preserves the card and scroll position.
+        event.currentTarget.focus({ preventScroll: true });
+        onOpen();
+      }}
       aria-label={
         done ? `${ghost.name}ともう一度話す` : `${ghost.name}は未発見`
       }

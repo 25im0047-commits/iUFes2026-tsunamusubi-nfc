@@ -127,9 +127,11 @@ export function GhostDialog({
   );
 }
 
+const scoreChoices = Array.from({ length: 11 }, (_, score) => String(score));
+
 function SurveyForm({
   id,
-  draft,
+  draft: initialDraft,
   onDraft,
   onFinish,
 }: {
@@ -138,11 +140,14 @@ function SurveyForm({
   onDraft: (answers: SurveyAnswers) => void;
   onFinish: (answers: SurveyAnswers) => Record<string, string>;
 }) {
+  const [draft, setDraft] = useState(initialDraft);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const errorRef = useRef<HTMLParagraphElement>(null);
   const definition = surveys[id];
   function update(question: string, value: SurveyAnswers[string]) {
-    onDraft({ ...draft, [question]: value });
+    const nextDraft = { ...draft, [question]: value };
+    setDraft(nextDraft);
+    onDraft(nextDraft);
     setErrors((previous) => {
       const next = { ...previous };
       delete next[question];
@@ -180,7 +185,7 @@ function SurveyForm({
         const value = draft[question.id];
         const choices =
           question.kind === "score"
-            ? Array.from({ length: 11 }, (_, score) => String(score))
+            ? scoreChoices
             : question.options;
         return (
           <fieldset
