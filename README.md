@@ -65,3 +65,4 @@ PRとmainへのpushでは、GitHub ActionsでWindows/Linux、Node.js 22.12.0/24�
 `dist`や`dist/client`を静的サイトとして配信しても、このSSRアプリのトップページは生成されません。Vercel用ビルドでは`.vercel/output/config.json`と`functions`・`static`が生成されます。`/index.html`へのSPA用rewriteは不要です。HTMLの生成元は`src/routes/__root.tsx`であり、リポジトリ直下に別の`index.html`を置くとNitroが空のHTMLを配信する原因になります。
 
 設定の根拠：[Vercel公式のTanStack Startデプロイ手順](https://vercel.com/kb/guide/deploy-a-tanstack-start-app-to-vercel)。ローカルでの本番ビルド・配信確認は[開発手順](CONTRIBUTING.md)を参照してください。
+
