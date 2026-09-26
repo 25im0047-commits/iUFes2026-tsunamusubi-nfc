@@ -18,6 +18,11 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; background: #08080a; }
 button { font: inherit; }
+.storage-notice { margin: 12px 0; padding: 16px; border: 3px solid var(--ink); background: var(--yellow); color: var(--ink); overflow-wrap: anywhere; }
+.storage-notice p { margin: 0 0 12px; font-size: 13px; line-height: 1.8; }
+.storage-notice button { min-height: 44px; padding: 8px 12px; border: 2px solid var(--ink); background: #fff; color: var(--ink); cursor: pointer; }
+.storage-notice button:focus-visible { outline-color: var(--purple); }
+.dialog .storage-notice { margin-top: 28px; }
 button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .page { width: min(900px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 54px; background: var(--paper); }

@@ -1,11 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { readNfcUrl } from "../lib/nfc";
 import {
   badGhosts,
   emptyProgress,
   getGhost,
   goodGhosts,
+  hasAllGoodStamps,
+  hasAllBadVisits,
   loadProgress,
+  recordGhost,
   saveProgress,
   type Ghost,
   type Progress,
@@ -18,48 +22,54 @@ function RallyPage() {
   const [activeGhostId, setActiveGhostId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [ready, setReady] = useState(false);
-  const goodComplete = progress.goodStampIds.length === goodGhosts.length;
-  const allBadVisited = progress.badVisitedIds.length === badGhosts.length;
+  const [storageIssue, setStorageIssue] = useState<StorageIssue>(null);
+  const progressRef = useRef(progress);
+  const initialized = useRef(false);
+  const goodComplete = hasAllGoodStamps(progress);
+  const allBadVisited = hasAllBadVisits(progress);
   const activeGhost = getGhost(activeGhostId);
 
+  function persistProgress(next: Progress) {
+    const result = saveProgress(next);
+    progressRef.current = result.progress;
+    setProgress(result.progress);
+    setStorageIssue(result.ok ? null : "unsaved");
+  }
+
   useEffect(() => {
-    const saved = loadProgress();
+    // Keep the initial NFC ID when development StrictMode re-runs effects.
+    if (initialized.current) return;
+    initialized.current = true;
+    const loaded = loadProgress();
+    const saved = loaded.progress;
+    progressRef.current = saved;
     setProgress(saved);
-    const url = new URL(window.location.href);
-    const id = url.searchParams.get("id");
-    if (id) {
+    if (loaded.status === "unavailable" || loaded.status === "repaired") {
+      setStorageIssue(loaded.status);
+    }
+    const { id, cleanPath } = readNfcUrl(window.location.href);
+    if (id !== null) {
       const ghost = getGhost(id);
       if (ghost) {
         setActiveGhostId(ghost.id);
         if (ghost.type === "bad" && !saved.badVisitedIds.includes(ghost.id)) {
-          const next = {
-            ...saved,
-            badVisitedIds: [...saved.badVisitedIds, ghost.id],
-          };
-          setProgress(next);
-          saveProgress(next);
+          persistProgress(recordGhost(saved, ghost.id));
         }
       } else {
         setMessage(`id「${id}」のおばけは登録されていません。`);
       }
-      url.search = "";
       window.history.replaceState(
         window.history.state,
         "",
-        `${url.pathname}${url.hash}`,
+        cleanPath,
       );
     }
     setReady(true);
   }, []);
 
   function finishGood(ghost: Ghost) {
-    if (!progress.goodStampIds.includes(ghost.id)) {
-      const next = {
-        ...progress,
-        goodStampIds: [...progress.goodStampIds, ghost.id],
-      };
-      setProgress(next);
-      saveProgress(next);
+    if (!progressRef.current.goodStampIds.includes(ghost.id)) {
+      persistProgress(recordGhost(progressRef.current, ghost.id));
       setMessage(`${ghost.name}のスタンプをMapに反映しました。`);
     }
     setActiveGhostId(null);
@@ -79,9 +89,16 @@ function RallyPage() {
     [goodComplete],
   );
   if (!ready) return <main className="loading">Mapを読み込んでいます…</main>;
+  const storageNotice = storageIssue && (
+    <ProgressStorageNotice
+      issue={storageIssue}
+      onRetry={() => persistProgress(progressRef.current)}
+    />
+  );
 
   return (
     <main className="page">
+      {!activeGhost && storageNotice}
       <section className="instruction">
         <p className="label">SYSTEM FLOW</p>
         <h2>おばけの気配を探そう！</h2>
@@ -100,7 +117,7 @@ function RallyPage() {
         <div className="progress-bar">
           <span
             style={{
-              width: `${(progress.goodStampIds.length / goodGhosts.length) * 100}%`,
+              width: `${goodGhosts.length ? (progress.goodStampIds.length / goodGhosts.length) * 100 : 0}%`,
             }}
           />
         </div>
@@ -158,7 +175,7 @@ function RallyPage() {
           <h2>おばけのコアにタッチ</h2>
           <p>
             NFCタグからこのページが開くと、URLの <code>id</code>{" "}
-            でおばけを判別します。読み取り後はURLからパラメータを削除します。
+            でおばけを判別します。読み取り後はURLからidだけを削除します。
           </p>
         </div>
       </section>
@@ -232,9 +249,29 @@ function RallyPage() {
           onGoodDone={finishGood}
           onBadDone={finishBad}
           onClose={() => setActiveGhostId(null)}
+          storageNotice={storageNotice}
         />
       )}
     </main>
+  );
+}
+
+type StorageIssue = "unavailable" | "repaired" | "unsaved" | null;
+
+function ProgressStorageNotice({ issue, onRetry }: {
+  issue: Exclude<StorageIssue, null>;
+  onRetry: () => void;
+}) {
+  const text = {
+    unavailable: "この端末の進捗を読み込めませんでした。保存を再試行すると、読み込めた進捗とこの画面の進捗を合わせて保存します。",
+    repaired: "保存データの一部を読み込めませんでした。確認できたスタンプを表示しています。取得状況を確認してください。",
+    unsaved: "進捗を保存できませんでした。この画面には反映されていますが、画面を閉じると失われる可能性があります。",
+  }[issue];
+  return (
+    <section className="storage-notice" aria-label="進捗の保存状況">
+      <p role="alert">{text}</p>
+      <button type="button" onClick={onRetry}>進捗の保存を再試行</button>
+    </section>
   );
 }
 
@@ -293,12 +330,14 @@ function GhostDialog({
   onGoodDone,
   onBadDone,
   onClose,
+  storageNotice,
 }: {
   ghost: Ghost;
   done: boolean;
   onGoodDone: (ghost: Ghost) => void;
   onBadDone: () => void;
   onClose: () => void;
+  storageNotice: ReactNode;
 }) {
   return (
     <div className="backdrop" onClick={onClose}>
@@ -317,6 +356,7 @@ function GhostDialog({
         >
           ×
         </button>
+        {storageNotice}
         <div className="dialog-ghost">
           <GhostImage ghost={ghost} />
         </div>

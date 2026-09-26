@@ -104,26 +104,104 @@ export function emptyProgress(): Progress {
   return { goodStampIds: [], badVisitedIds: [] };
 }
 
-export function loadProgress(): Progress {
-  if (typeof window === "undefined") return emptyProgress();
+/** Only IDs in the current prototype catalog count toward progress. */
+export function normalizeProgress(value: unknown): Progress {
+  const data = value && typeof value === "object" && !Array.isArray(value)
+    ? value as Partial<Progress>
+    : {};
+  function validIds(ids: unknown, catalog: Ghost[]): string[] {
+    if (!Array.isArray(ids)) return [];
+    const allowed = new Set(catalog.map((ghost) => ghost.id));
+    return [...new Set(ids.filter((id): id is string =>
+      typeof id === "string" && allowed.has(id),
+    ))];
+  }
+  return {
+    goodStampIds: validIds(data.goodStampIds, goodGhosts),
+    badVisitedIds: validIds(data.badVisitedIds, badGhosts),
+  };
+}
+
+export function mergeProgress(left: Progress, right: Progress): Progress {
+  const a = normalizeProgress(left);
+  const b = normalizeProgress(right);
+  return normalizeProgress({
+    goodStampIds: [...a.goodStampIds, ...b.goodStampIds],
+    badVisitedIds: [...a.badVisitedIds, ...b.badVisitedIds],
+  });
+}
+
+/** Retains the prototype's bad-ghost visit semantics; this is not a survey completion. */
+export function recordGhost(progress: Progress, id: string): Progress {
+  const next = normalizeProgress(progress);
+  const ghost = getGhost(id);
+  if (!ghost) return next;
+  const ids = ghost.type === "good" ? next.goodStampIds : next.badVisitedIds;
+  if (!ids.includes(id)) ids.push(id);
+  return next;
+}
+
+export function hasAllGoodStamps(progress: Progress): boolean {
+  const ids = new Set(normalizeProgress(progress).goodStampIds);
+  return goodGhosts.length > 0 && goodGhosts.every((ghost) => ids.has(ghost.id));
+}
+
+export function hasAllBadVisits(progress: Progress): boolean {
+  const ids = new Set(normalizeProgress(progress).badVisitedIds);
+  return badGhosts.length > 0 && badGhosts.every((ghost) => ids.has(ghost.id));
+}
+
+export type ProgressStorage = Pick<Storage, "getItem" | "setItem">;
+export type ProgressLoadResult = {
+  progress: Progress;
+  status: "empty" | "loaded" | "repaired" | "unavailable";
+};
+export type ProgressSaveResult =
+  | { ok: true; progress: Progress }
+  | { ok: false; progress: Progress };
+
+function decodeProgress(raw: string | null): ProgressLoadResult {
+  if (raw === null) return { progress: emptyProgress(), status: "empty" };
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return emptyProgress();
-    const parsed = JSON.parse(raw) as Partial<Progress>;
+    const parsed: unknown = JSON.parse(raw);
+    const progress = normalizeProgress(parsed);
+    const data = parsed as Partial<Progress> | null;
+    const intact = data !== null && typeof data === "object" && !Array.isArray(data)
+      && JSON.stringify(data.goodStampIds) === JSON.stringify(progress.goodStampIds)
+      && JSON.stringify(data.badVisitedIds) === JSON.stringify(progress.badVisitedIds);
     return {
-      goodStampIds: Array.isArray(parsed.goodStampIds)
-        ? parsed.goodStampIds
-        : [],
-      badVisitedIds: Array.isArray(parsed.badVisitedIds)
-        ? parsed.badVisitedIds
-        : [],
+      progress,
+      status: intact ? "loaded" : "repaired",
     };
   } catch {
-    return emptyProgress();
+    return { progress: emptyProgress(), status: "repaired" };
   }
 }
 
-export function saveProgress(progress: Progress) {
-  if (typeof window !== "undefined")
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+function browserStorage(): ProgressStorage | undefined {
+  return typeof window === "undefined" ? undefined : window.localStorage;
+}
+
+export function loadProgress(storage?: ProgressStorage): ProgressLoadResult {
+  try {
+    const target = storage ?? browserStorage();
+    if (!target) return { progress: emptyProgress(), status: "unavailable" };
+    return decodeProgress(target.getItem(STORAGE_KEY));
+  } catch {
+    return { progress: emptyProgress(), status: "unavailable" };
+  }
+}
+
+export function saveProgress(progress: Progress, storage?: ProgressStorage): ProgressSaveResult {
+  let next = normalizeProgress(progress);
+  try {
+    const target = storage ?? browserStorage();
+    if (!target) return { ok: false, progress: next };
+    // Preserve progress saved by another tab before this write. localStorage is not transactional.
+    next = mergeProgress(decodeProgress(target.getItem(STORAGE_KEY)).progress, next);
+    target.setItem(STORAGE_KEY, JSON.stringify(next));
+    return { ok: true, progress: next };
+  } catch {
+    return { ok: false, progress: next };
+  }
 }
