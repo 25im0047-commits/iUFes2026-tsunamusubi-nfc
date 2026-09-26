@@ -32,6 +32,7 @@ function RallyPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [ready, setReady] = useState(false);
   const [screen, setScreen] = useState<Screen>("title");
+  const focusedScreen = useRef<Screen | null>(null);
   const [activeGhostId, setActiveGhostId] = useState<string | null>(null);
   const [earned, setEarned] = useState<{
     ghost: Ghost;
@@ -84,7 +85,14 @@ function RallyPage() {
   }, []);
 
   useEffect(() => {
-    if (ready && !activeGhostId && !earned) headingRef.current?.focus();
+    if (!ready || activeGhostId || earned) return;
+    // Dialog restores its opener. Preserve that focus on the same screen.
+    if (
+      focusedScreen.current !== screen ||
+      document.activeElement === document.body
+    )
+      headingRef.current?.focus();
+    focusedScreen.current = screen;
   }, [screen, ready, activeGhostId, earned]);
 
   function finishConversation(

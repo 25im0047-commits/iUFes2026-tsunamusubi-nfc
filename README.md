@@ -9,6 +9,7 @@ iU FesのNFCスタンプラリーを動作確認するTanStack Startプロトタ
 - [実装状況・確定事項・残作業](docs/implementation-status.md)：次の実装範囲を確認する
 - [参加者フローと回答仕様](docs/participant-flow.md)：今回確定した仕様・回答の扱い・将来のクイズ設計
 - [開発・テスト・レビュー手順](CONTRIBUTING.md)：起動、保存エラーの再現、変更前の確認
+- [変更履歴](CHANGELOG.md)：修正内容と検証結果
 - [Slack SSOT](https://iu-people.slack.com/docs/T0100UQSVME/F0C4QA5M1NV)：企画上の決定と未決事項の原本
 
 このREADMEと実装状況表はコードの説明です。2026-09-26に依頼者が確認した利用フローを反映しています。旧Slack SSOTの受付クイズ等と食い違う点は[参加者フロー](docs/participant-flow.md)に記録しています。SlackやDriveの資料には大学・プロジェクトのアカウントが必要な場合があります。
@@ -48,4 +49,4 @@ npm test
 npm run build
 ```
 
-PRとmainへのpushでは、GitHub ActionsでWindows/Linux、Node.js 22.12.0/24のチェックを実行します。各PRのChecksで結果を確認してください。
+PRとmainへのpushでは、GitHub ActionsでWindows/Linux、Node.js 22.12.0/24のチェックと、Linux / Node 24のChromiumブラウザーテストを実行します。ブラウザーテストの起動方法は[開発手順](CONTRIBUTING.md)を参照してください。各PRのChecksで結果を確認してください。

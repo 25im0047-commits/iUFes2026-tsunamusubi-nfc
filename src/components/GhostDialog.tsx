@@ -20,11 +20,20 @@ export function Dialog({
   className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const headingId = useId();
   useEffect(() => {
     const dialog = ref.current!;
+    const opener = document.activeElement;
     if (!dialog.open) dialog.showModal();
-    return () => dialog.close();
+    // React does not apply autoFocus to headings. Start long surveys at the title.
+    headingRef.current?.focus({ preventScroll: true });
+    return () => {
+      dialog.close();
+      // React may remove the dialog before cleanup, so restore its opener explicitly.
+      if (opener instanceof HTMLElement && opener.isConnected)
+        opener.focus({ preventScroll: true });
+    };
   }, []);
   return (
     <dialog
@@ -44,7 +53,7 @@ export function Dialog({
       >
         ×
       </button>
-      <h2 id={headingId} tabIndex={-1} autoFocus>
+      <h2 ref={headingRef} id={headingId} tabIndex={-1}>
         {title}
       </h2>
       {children}

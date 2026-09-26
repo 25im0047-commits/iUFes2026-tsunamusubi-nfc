@@ -36,7 +36,18 @@ input, textarea { font: inherit; }
 .shadow-pair .ghost-placeholder:after { background: #110d19; border-color: #b59ae6; }
 .completion-seal { font-size: 100px; line-height: 1.4; color: var(--purple); }
 .ending-panel { background: #fff0ac; }
-dialog.dialog { margin: auto; width: min(600px, calc(100% - 32px)); transform: none; }
+dialog.dialog {
+  /* Keep native modals anchored to the viewport, including on scrolled pages. */
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(600px, calc(100% - 32px));
+  max-height: min(760px, calc(100vh - 32px));
+  max-height: min(760px, calc(100dvh - 32px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  transform: none;
+}
 dialog.dialog::backdrop { background: rgba(8,8,10,.78); }
 dialog.dialog > h2 { margin: 12px 26px 24px; }
 .stamp-pop { animation: stamp-pop .4s ease-out; }

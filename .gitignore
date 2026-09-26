@@ -2,3 +2,5 @@ node_modules
 dist
 .output
 .tanstack
+playwright-report
+test-results
