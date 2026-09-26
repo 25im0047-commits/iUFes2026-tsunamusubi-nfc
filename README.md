@@ -50,3 +50,18 @@ npm run build
 ```
 
 PRとmainへのpushでは、GitHub ActionsでWindows/Linux、Node.js 22.12.0/24のチェックと、Linux / Node 24のChromiumブラウザーテストを実行します。ブラウザーテストの起動方法は[開発手順](CONTRIBUTING.md)を参照してください。各PRのChecksで結果を確認してください。
+
+## Vercelへの公開
+
+このアプリはTanStack StartのSSRを使用します。`vite.config.ts`のNitroプラグインが、Vercelで実行するサーバー関数と静的ファイルを生成します。`vercel.json`でフレームワークを`tanstack-start`に指定しています。
+
+1. VercelでこのGitリポジトリをImportします。Root Directoryはリポジトリ直下（`package.json`がある場所）です。
+2. Framework Presetが **TanStack Start** であることを確認します。Build Command / Output Directoryの独自のOverrideは解除し、フレームワークの既定値を使ってください。Node.jsはCIでも検証する **24.x** を推奨します。
+3. デプロイすると、Vercelが割り当てる`https://<project-name>.vercel.app`で公開できます。独自ドメインの購入・DNS設定は不要です。現状のアプリに必須の環境変数はありません。
+4. 公開URLの`/`でタイトルが表示され、`/?id=good-01`で会話が開くことを確認します。NFCタグにはProductionに割り当てた同じドメインのURLを書き込みます。進捗はオリジン単位なので、Preview URLとは共有されません。
+
+すでに404が発生しているプロジェクトは、この修正をコミット・pushし、修正を含むコミットから再デプロイしてください。古いコミットのRedeployだけでは修正が入りません。
+
+`dist`や`dist/client`を静的サイトとして配信しても、このSSRアプリのトップページは生成されません。Vercel用ビルドでは`.vercel/output/config.json`と`functions`・`static`が生成されます。`/index.html`へのSPA用rewriteは不要です。HTMLの生成元は`src/routes/__root.tsx`であり、リポジトリ直下に別の`index.html`を置くとNitroが空のHTMLを配信する原因になります。
+
+設定の根拠：[Vercel公式のTanStack Startデプロイ手順](https://vercel.com/kb/guide/deploy-a-tanstack-start-app-to-vercel)。ローカルでの本番ビルド・配信確認は[開発手順](CONTRIBUTING.md)を参照してください。

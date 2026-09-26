@@ -1,0 +1,41 @@
+import assert from "node:assert/strict";
+import { access, readFile } from "node:fs/promises";
+import test from "node:test";
+
+// Run after building with NITRO_PRESET=vercel. Exercise the generated function,
+// since a successful Vite build alone does not guarantee deployable routes.
+const output = new URL("../../.vercel/output/", import.meta.url);
+const config = JSON.parse(await readFile(new URL("config.json", output), "utf8"));
+const serverRoute = config.routes.find((route) => route.src === "/(.*)" && route.dest);
+assert.ok(serverRoute, "Vercel output must route page requests to a server function");
+const functionDirectory = new URL(`functions${serverRoute.dest}.func/`, output);
+const functionConfig = JSON.parse(
+  await readFile(new URL(".vc-config.json", functionDirectory), "utf8"),
+);
+const { default: handler } = await import(new URL(functionConfig.handler, functionDirectory).href);
+
+for (const path of ["/", "/?id=good-01&source=nfc"]) {
+  test(`Vercel function renders ${path} with published assets`, async () => {
+    const response = await handler.fetch(new Request(`https://rally.example${path}`));
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type"), /text\/html/);
+    const html = await response.text();
+    assert.match(html, /<main\b/, "The TanStack page must render, not an empty HTML shell");
+    assert.match(html, /<script\b[^>]*type="module"/, "Client hydration must be included");
+
+    const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g)].map(
+      (match) => match[1],
+    );
+    assert.ok(assets.some((asset) => asset.endsWith(".js")), "Client JavaScript must be published");
+    assert.ok(assets.some((asset) => asset.endsWith(".css")), "Styles must be published");
+    for (const asset of new Set(assets)) {
+      await access(new URL(`static${asset}`, output));
+    }
+  });
+}
+
+test("unknown routes return the application's 404", async () => {
+  const response = await handler.fetch(new Request("https://rally.example/missing-route"));
+  assert.equal(response.status, 404);
+  assert.match(await response.text(), /<title>iUFes2026 おばけMap<\/title>/);
+});

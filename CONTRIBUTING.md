@@ -26,7 +26,35 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-テストは専用のブラウザー環境を使い、開発サーバーを`http://127.0.0.1:3002`で起動します。モーダルの中央配置・スクロール・画面サイズ変更・フォーカス復帰と、NFCから全取得までのフロー・保存失敗からの再試行を確認します。CIではLinux / Node 24で実行し、失敗時のトレースをArtifactsに7日間保存します。
+テストは専用のブラウザー環境を使い、開発サーバーを`http://127.0.0.1:3002`で起動します。モーダルの中央配置・スクロール・画面サイズ変更・フォーカス復帰と、NFCから全取得までのフロー・保存失敗からの再試行を確認します。
+
+### 本番ビルド・Vercel向け出力の検証
+
+デプロイ設定を変更した場合は、本番ビルドを実際に配信するブラウザーテストも実行します。ビルドとサーバーの起動・終了はテストが行います。開発サーバーの流用はせず、ポート3002が使用中ならエラーになります。
+
+```bash
+npm run test:e2e:production
+```
+
+CIではLinux / Node 24でこの本番ブラウザーテストを実行し、失敗時のトレースをArtifactsに7日間保存します。手動で本番ビルドを起動する場合は`npm run build`の後に`npm start`を実行します（既定は`http://localhost:3000`）。
+
+Vercel用ビルドのサーバー関数と配信ファイルは、次の手順で検証します。Vercelアカウントや認証情報は不要です。
+
+```bash
+NITRO_PRESET=vercel npm run build
+npm run test:deployment
+```
+
+PowerShellの場合：
+
+```powershell
+$env:NITRO_PRESET = 'vercel'
+npm run build
+Remove-Item Env:NITRO_PRESET
+npm run test:deployment
+```
+
+このテストは`.vercel/output`内のルーティング先の関数を実行し、`/`とNFCクエリ付きURLがHTMLを返すこと、読み込むJavaScript/CSSが出力されていること、未知のパスがアプリの404になることを確認します。CIのWindows/Linux・Node 22.12.0/24でも実行します。Vercel上のプロジェクト設定・ドメイン割り当ては再現しないため、再デプロイ後には公開URLも確認してください。
 
 ## コードの入口
 
