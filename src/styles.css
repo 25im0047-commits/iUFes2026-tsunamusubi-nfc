@@ -18,6 +18,51 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; background: #08080a; }
 button { font: inherit; }
+input, textarea { font: inherit; }
+.flow-panel { padding: clamp(24px, 6vw, 64px) 24px; text-align: center; }
+.flow-panel h1 { font-size: clamp(26px, 5vw, 44px); line-height: 1.5; }
+.flow-panel p, .how-to { line-height: 1.9; }
+.flow-panel .action { max-width: 460px; min-height: 52px; margin: 16px auto; }
+.title-ghosts { display: grid; place-items: center; min-height: 170px; }
+.how-to { padding: 24px 24px 24px 48px; border: 3px solid var(--ink); background: white; text-align: left; }
+.how-to li + li { margin-top: 20px; }
+.text-button { display: block; margin: 18px auto 0; padding: 10px; min-height: 44px; color: var(--purple); background: transparent; border: 0; text-decoration: underline; cursor: pointer; }
+.instruction h1 { font-size: clamp(23px, 5vw, 32px); }
+.instruction .text-button { margin-left: 0; }
+.unlock-panel { background: #21192d; color: white; animation: reveal-shadow .6s ease-out; }
+.unlock-panel .label { color: #dbceff; }
+.shadow-pair { display: flex; justify-content: center; gap: 40px; margin: 40px 0; }
+.shadow-pair .ghost-placeholder { background: #110d19; border-color: #b59ae6; }
+.shadow-pair .ghost-placeholder:after { background: #110d19; border-color: #b59ae6; }
+.completion-seal { font-size: 100px; line-height: 1.4; color: var(--purple); }
+.ending-panel { background: #fff0ac; }
+dialog.dialog { margin: auto; width: min(600px, calc(100% - 32px)); transform: none; }
+dialog.dialog::backdrop { background: rgba(8,8,10,.78); }
+dialog.dialog > h2 { margin: 12px 26px 24px; }
+.stamp-pop { animation: stamp-pop .4s ease-out; }
+.survey { margin-top: 24px; }
+.survey-help, .prototype-note, .score-help { font-size: 13px; line-height: 1.8; }
+.prototype-note { padding: 12px; border: 2px solid var(--purple); background: #eee6ff; }
+.survey fieldset { min-width: 0; margin: 24px 0; padding: 16px 12px; border: 2px solid var(--ink); }
+.survey legend { padding: 0 4px; font-weight: 700; font-size: 15px; line-height: 1.7; }
+.survey legend small { display: inline-block; font-weight: 400; font-size: 12px; }
+.survey-choices { display: grid; gap: 10px; }
+.survey-choices label, .skip-answer { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px; border: 1px solid #8b8190; background: white; cursor: pointer; }
+.survey-choices label:has(input:checked), .skip-answer:has(input:checked) { background: #f3e8ff; border: 2px solid var(--purple); }
+.survey input { flex: 0 0 auto; width: 18px; height: 18px; accent-color: var(--purple); }
+.survey input:focus-visible, .survey textarea:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
+.score-choices { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.skip-answer { margin-top: 10px; }
+.survey textarea { display: block; resize: vertical; width: 100%; border: 1px solid #8b8190; padding: 10px; background: white; color: var(--ink); font-size: 16px; }
+.form-error { color: #9c153d; font-weight: 700; font-size: 13px; }
+@keyframes reveal-shadow { from { opacity: .25; } to { opacity: 1; } }
+@keyframes stamp-pop { from { transform: scale(.8); opacity: .4; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .stamp-pop, .unlock-panel { animation: none; } }
+.storage-notice { margin: 12px 0; padding: 16px; border: 3px solid var(--ink); background: var(--yellow); color: var(--ink); overflow-wrap: anywhere; }
+.storage-notice p { margin: 0 0 12px; font-size: 13px; line-height: 1.8; }
+.storage-notice button { min-height: 44px; padding: 8px 12px; border: 2px solid var(--ink); background: #fff; color: var(--ink); cursor: pointer; }
+.storage-notice button:focus-visible { outline-color: var(--purple); }
+.dialog .storage-notice { margin-top: 28px; }
 button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .page { width: min(900px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 54px; background: var(--paper); }
