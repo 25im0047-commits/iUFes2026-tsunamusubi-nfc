@@ -26,7 +26,7 @@ npx playwright install chromium webkit
 npm run test:e2e
 ```
 
-テストはChromiumとモバイル・タッチ設定のWebKitで各15件（計30件）を実行します。[モバイル検証記録](docs/mobile-verification.md)に画面サイズと実機で残る確認をまとめています。スクリーンショットは`test-results/`に出力され、次の実行時に置き換わります。
+テストはChromiumとモバイル・タッチ設定のWebKitで各21件（計42件）を実行します。別タブ同期、未保存回答・下書きの保持、未対応版の上書き防止、v2からの移行、画面復帰時の表示維持、同期後の取得カードの案内更新も含みます。[モバイル検証記録](docs/mobile-verification.md)に画面サイズと実機で残る確認をまとめています。スクリーンショットは`test-results/`に出力され、次の実行時に置き換わります。
 
 テストは専用のブラウザー環境を使い、開発サーバーを`http://127.0.0.1:3002`で起動します。モーダルの中央配置・スクロール・画面サイズ変更・フォーカス復帰と、NFCから全取得までのフロー・保存失敗からの再試行を確認します。
 
@@ -101,13 +101,14 @@ npm run test:deployment
 | 図鑑をスクロールして会話を開き、閉じる／Escape | 会話は画面中央に表示。閉じると元のカードにフォーカスが戻り、ページ先頭へ飛ばない |
 | 長いアンケートを開き、狭い縦画面・横画面に変更 | ダイアログが画面内に収まり、内部をスクロールして完了ボタンへ到達できる |
 
-保存キーは`iufes2026-system-prototype-progress`です。例えばコンソールで次を実行し、再読み込みすると不正データからの復元を確認できます。
+保存キーは`iufes2026-system-prototype-progress-v3`です。例えばコンソールで次を実行し、再読み込みすると不正データからの復元を確認できます。
 
 ```js
-localStorage.setItem("iufes2026-system-prototype-progress", JSON.stringify({
-  schemaVersion: 2,
+localStorage.setItem("iufes2026-system-prototype-progress-v3", JSON.stringify({
+  schemaVersion: 3,
   hasStarted: true,
   goodStampIds: ["good-01", "good-01", "unknown", "bad-01"],
+  badStampIds: [],
   surveyResponses: {},
 }));
 location.reload();
@@ -131,10 +132,12 @@ delete window.rallyOriginalSetItem;
 
 この操作はそのページ内だけのテスト用差し替えです。localStorage自体のアクセス拒否・読み込み失敗は単体テストでも確認します。
 
-旧データの移行テストでは、`schemaVersion`なしの`{goodStampIds: [...], badVisitedIds: ["bad-01", "bad-02"]}`を入れて再読み込みします。良いおばけだけを引き継ぎ、悪いおばけは会話を再度終えるまで未取得であることを確認してください。
+旧データの移行テストでは、新キーがない専用ブラウザーで、旧キー`iufes2026-system-prototype-progress`へ`schemaVersion`なしの`{goodStampIds: [...], badVisitedIds: ["bad-01", "bad-02"]}`を入れて再読み込みします。良いおばけだけを引き継ぎ、悪いおばけは会話を再度終えるまで未取得であることを確認してください。v2の有効な完了回答がある場合は、固定IDへ変換した回答と悪いおばけのスタンプも引き継ぎます。保存後に旧キーが変更されず、新キーで再開できることを確認してください。
+
+未対応版のテストでは、新キーへ`schemaVersion: 99`を入れ、取得操作をしても保存値を変更せず再読み込みの案内を表示することを確認します。別タブ同期では、片方で最後の良いおばけ・最後の悪いおばけを取得し、元のタブの解放・完了表示が更新されること、入力中の回答や保存失敗で保持している回答が消えないことを確認します。
 
 ## 仕様変更時
 
-[参加者フロー](docs/participant-flow.md)と[実装状況](docs/implementation-status.md)を入口にしてください。依頼者の最新確認を旧Slack SSOTより優先し、確定済み要件と検討中の提案を分けてPRに記載します。ID・取得条件・保存形式を変えるときは既存進捗の扱いを説明してください。現時点は端末内保存のみです。運営への送信を追加するときは会話完了と配送状態を分け、既存回答を自動送信しない移行を設計します。
+[参加者フロー](docs/participant-flow.md)と[実装状況](docs/implementation-status.md)を入口にしてください。依頼者の最新確認を旧Slack SSOTより優先し、確定済み要件と検討中の提案を分けてPRに記載します。ID・取得条件・保存形式を変えるときは既存進捗の扱いを説明してください。選択肢の文言だけを変える場合は`label`のみ変更します。固定ID、`responseQuestionsV2`、`legacyChoices`は過去の保存契約です。質問の意味や構成を変える場合は回答版と対応する読み取り処理を追加してください。現時点は端末内保存のみです。運営への送信を追加するときは会話完了と配送状態を分け、既存回答を自動送信しない移行を設計します。
 
 PRには問題と変更後の動作、実行したチェック、残る制約を記載します。大学アカウントの認証情報や参加者データをテスト・スクリーンショットに含めないでください。

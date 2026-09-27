@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { validateAnswers } from "../src/lib/survey.ts";
+import {
+  validateAnswers,
+  readSurveyResponse,
+  surveys,
+} from "../src/lib/survey.ts";
 
 test("all questions may be unanswered without fabricating data", () => {
   for (const id of ["bad-01", "bad-02"]) {
@@ -27,9 +31,9 @@ test("zero and ten are valid explicit scores; missing score is not zero", () => 
 
 test("multiple choice allows combined visitor categories and rejects unknown options", () => {
   assert.deepEqual(
-    validateAnswers("bad-01", { visitor: ["親子", "小学生", "親子"] }).answers
-      .visitor,
-    ["小学生", "親子"],
+    validateAnswers("bad-01", { visitor: ["family", "elementary", "family"] })
+      .answers.visitor,
+    ["elementary", "family"],
   );
   assert.equal(
     validateAnswers("bad-01", { visitor: [] }).answers.visitor,
@@ -70,4 +74,59 @@ test("unexpected form containers and wrong value types do not become completions
   for (const value of [null, "text", [], 42])
     assert.ok(validateAnswers("bad-02", value).errors.form);
   assert.ok(validateAnswers("bad-02", { favorite: ["text"] }).errors.favorite);
+});
+
+test("historical answers are read independently of current UI questions", () => {
+  const questions = surveys["bad-01"].questions;
+  surveys["bad-01"].questions = [];
+  try {
+    assert.equal(
+      readSurveyResponse("bad-01", {
+        version: 2,
+        answers: { satisfaction: "happy" },
+      }).answers.satisfaction,
+      "happy",
+    );
+    assert.equal(
+      readSurveyResponse("bad-01", {
+        version: 1,
+        answers: { satisfaction: "たのしかった！" },
+      }).answers.satisfaction,
+      "happy",
+    );
+    assert.equal(
+      readSurveyResponse("bad-01", {
+        version: 1,
+        answers: { satisfaction: "happy" },
+      }),
+      undefined,
+    );
+    assert.equal(
+      readSurveyResponse("bad-01", {
+        version: 1,
+        answers: { visitor: ["unknown"] },
+      }),
+      undefined,
+    );
+    assert.equal(
+      readSurveyResponse("bad-01", { version: 99, answers: {} }),
+      undefined,
+    );
+  } finally {
+    surveys["bad-01"].questions = questions;
+  }
+});
+
+test("current choice IDs match the versioned answer contract", () => {
+  for (const [id, survey] of Object.entries(surveys)) {
+    for (const question of survey.questions) {
+      for (const option of question.options ?? []) {
+        const value = question.kind === "multiple" ? [option.id] : option.id;
+        assert.deepEqual(
+          validateAnswers(id, { [question.id]: value }).errors,
+          {},
+        );
+      }
+    }
+  }
 });

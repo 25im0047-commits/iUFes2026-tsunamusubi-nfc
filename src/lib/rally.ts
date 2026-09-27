@@ -1,5 +1,6 @@
 import {
   isSurveyId,
+  readSurveyResponse,
   validateAnswers,
   type SurveyId,
   type SurveyResponse,
@@ -21,13 +22,16 @@ export type Ghost = {
 };
 
 export type Progress = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   hasStarted: boolean;
   goodStampIds: string[];
+  badStampIds: SurveyId[];
   surveyResponses: Partial<Record<SurveyId, SurveyResponse>>;
 };
 
-export const STORAGE_KEY = "iufes2026-system-prototype-progress";
+// Isolate new data from already-open, pre-migration clients that cannot reject it.
+export const LEGACY_STORAGE_KEY = "iufes2026-system-prototype-progress";
+export const STORAGE_KEY = `${LEGACY_STORAGE_KEY}-v3`;
 
 export const ghosts: Ghost[] = [
   {
@@ -113,19 +117,27 @@ export function getGhost(id: string | null | undefined) {
 
 export function emptyProgress(): Progress {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     hasStarted: false,
     goodStampIds: [],
+    badStampIds: [],
     surveyResponses: {},
   };
 }
 
-/** Legacy visits are not survey completions. Only good stamps are migrated. */
+/** Versionless visits migrate good stamps only; v2 completed surveys also migrate. */
 export function normalizeProgress(value: unknown): Progress {
   const next = emptyProgress();
   if (!value || typeof value !== "object" || Array.isArray(value)) return next;
-  const data = value as Partial<Progress>;
-  if (data.schemaVersion !== undefined && data.schemaVersion !== 2) return next;
+  const data = value as Omit<Partial<Progress>, "schemaVersion"> & {
+    schemaVersion?: unknown;
+  };
+  if (
+    data.schemaVersion !== undefined &&
+    data.schemaVersion !== 2 &&
+    data.schemaVersion !== 3
+  )
+    return next;
   const allowed = new Set(goodGhosts.map((ghost) => ghost.id));
   if (Array.isArray(data.goodStampIds)) {
     next.goodStampIds = [
@@ -137,22 +149,30 @@ export function normalizeProgress(value: unknown): Progress {
     ];
   }
   next.hasStarted = data.hasStarted === true || next.goodStampIds.length > 0;
+  if (data.schemaVersion === 3 && Array.isArray(data.badStampIds)) {
+    next.badStampIds = [
+      ...new Set(
+        data.badStampIds.filter(
+          (id) => typeof id === "string" && isSurveyId(id),
+        ),
+      ),
+    ];
+  }
   if (
-    data.schemaVersion === 2 &&
-    allGoodIdsPresent(next.goodStampIds) &&
+    (data.schemaVersion === 3 ||
+      (data.schemaVersion === 2 && allGoodIdsPresent(next.goodStampIds))) &&
     data.surveyResponses &&
     typeof data.surveyResponses === "object"
   ) {
     for (const ghost of badGhosts) {
       if (!isSurveyId(ghost.id)) continue;
-      const response = data.surveyResponses[ghost.id];
-      if (!response || response.version !== 1) continue;
-      const checked = validateAnswers(ghost.id, response.answers);
-      if (Object.keys(checked.errors).length === 0)
-        next.surveyResponses[ghost.id] = {
-          version: 1,
-          answers: checked.answers,
-        };
+      const response = readSurveyResponse(
+        ghost.id,
+        data.surveyResponses[ghost.id],
+      );
+      if (!response) continue;
+      next.surveyResponses[ghost.id] = response;
+      if (!next.badStampIds.includes(ghost.id)) next.badStampIds.push(ghost.id);
     }
   }
   return next;
@@ -162,9 +182,10 @@ export function mergeProgress(left: Progress, right: Progress): Progress {
   const a = normalizeProgress(left);
   const b = normalizeProgress(right);
   return normalizeProgress({
-    schemaVersion: 2,
+    schemaVersion: 3,
     hasStarted: a.hasStarted || b.hasStarted,
     goodStampIds: [...a.goodStampIds, ...b.goodStampIds],
+    badStampIds: [...a.badStampIds, ...b.badStampIds],
     // First saved completion wins; reopening a completed conversation cannot overwrite it.
     surveyResponses: { ...b.surveyResponses, ...a.surveyResponses },
   });
@@ -195,7 +216,7 @@ export function hasAllGoodStamps(progress: Progress): boolean {
 export function isGhostComplete(progress: Progress, id: string): boolean {
   const next = normalizeProgress(progress);
   return isSurveyId(id)
-    ? !!next.surveyResponses[id]
+    ? next.badStampIds.includes(id)
     : next.goodStampIds.includes(id);
 }
 
@@ -226,40 +247,77 @@ export function completeBadConversation(
       progress: next,
       errors: { form: "まずは いいおばけと なかよくなろう！" },
     };
-  if (next.surveyResponses[id]) return { progress: next, errors: {} };
+  if (next.badStampIds.includes(id)) return { progress: next, errors: {} };
   const checked = validateAnswers(id, answers);
   if (Object.keys(checked.errors).length)
     return { progress: next, errors: checked.errors };
-  next.surveyResponses[id] = { version: 1, answers: checked.answers };
+  next.surveyResponses[id] = { version: 2, answers: checked.answers };
+  next.badStampIds.push(id);
   return { progress: next, errors: {} };
 }
 
 export type ProgressStorage = Pick<Storage, "getItem" | "setItem">;
 export type ProgressLoadResult = {
   progress: Progress;
-  status: "empty" | "loaded" | "migrated" | "repaired" | "unavailable";
+  status:
+    | "empty"
+    | "loaded"
+    | "migrated"
+    | "repaired"
+    | "unavailable"
+    | "unsupported";
 };
 export type ProgressSaveResult =
-  { ok: true; progress: Progress } | { ok: false; progress: Progress };
+  | { ok: true; progress: Progress }
+  | { ok: false; progress: Progress; reason?: "unsupported" };
 
 function decodeProgress(raw: string | null): ProgressLoadResult {
   if (raw === null) return { progress: emptyProgress(), status: "empty" };
   try {
     const parsed: unknown = JSON.parse(raw);
     const progress = normalizeProgress(parsed);
-    const data = parsed as Partial<Progress> | null;
+    const data = parsed as
+      | (Omit<Partial<Progress>, "schemaVersion" | "surveyResponses"> & {
+          schemaVersion?: unknown;
+          surveyResponses?: Record<string, unknown>;
+        })
+      | null;
     const object =
       data !== null && typeof data === "object" && !Array.isArray(data);
+    if (
+      object &&
+      data.schemaVersion !== undefined &&
+      data.schemaVersion !== 2 &&
+      data.schemaVersion !== 3
+    )
+      return { progress: emptyProgress(), status: "unsupported" };
+    // Do not discard responses from a newer question version either.
+    if (
+      object &&
+      data.surveyResponses &&
+      typeof data.surveyResponses === "object" &&
+      Object.values(data.surveyResponses).some(
+        (response) =>
+          response &&
+          typeof response === "object" &&
+          "version" in response &&
+          response.version !== 1 &&
+          response.version !== 2,
+      )
+    )
+      return { progress, status: "unsupported" };
     const legacy =
       object &&
-      data.schemaVersion === undefined &&
+      (data.schemaVersion === undefined || data.schemaVersion === 2) &&
       Array.isArray(data.goodStampIds);
     const intact =
       object &&
-      data.schemaVersion === 2 &&
+      data.schemaVersion === 3 &&
       data.hasStarted === progress.hasStarted &&
       JSON.stringify(data.goodStampIds) ===
         JSON.stringify(progress.goodStampIds) &&
+      JSON.stringify(data.badStampIds) ===
+        JSON.stringify(progress.badStampIds) &&
       JSON.stringify(data.surveyResponses) ===
         JSON.stringify(progress.surveyResponses);
     return {
@@ -271,6 +329,15 @@ function decodeProgress(raw: string | null): ProgressLoadResult {
   }
 }
 
+function readStoredProgress(storage: ProgressStorage): ProgressLoadResult {
+  const current = storage.getItem(STORAGE_KEY);
+  if (current !== null) return decodeProgress(current);
+  const legacy = decodeProgress(storage.getItem(LEGACY_STORAGE_KEY));
+  return legacy.status === "loaded"
+    ? { ...legacy, status: "migrated" }
+    : legacy;
+}
+
 function browserStorage(): ProgressStorage | undefined {
   return typeof window === "undefined" ? undefined : window.localStorage;
 }
@@ -279,7 +346,7 @@ export function loadProgress(storage?: ProgressStorage): ProgressLoadResult {
   try {
     const target = storage ?? browserStorage();
     if (!target) return { progress: emptyProgress(), status: "unavailable" };
-    return decodeProgress(target.getItem(STORAGE_KEY));
+    return readStoredProgress(target);
   } catch {
     return { progress: emptyProgress(), status: "unavailable" };
   }
@@ -294,10 +361,10 @@ export function saveProgress(
     const target = storage ?? browserStorage();
     if (!target) return { ok: false, progress: next };
     // Preserve progress saved by another tab before this write. localStorage is not transactional.
-    next = mergeProgress(
-      decodeProgress(target.getItem(STORAGE_KEY)).progress,
-      next,
-    );
+    const stored = readStoredProgress(target);
+    if (stored.status === "unsupported")
+      return { ok: false, progress: next, reason: "unsupported" };
+    next = mergeProgress(stored.progress, next);
     target.setItem(STORAGE_KEY, JSON.stringify(next));
     return { ok: true, progress: next };
   } catch {

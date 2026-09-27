@@ -1,12 +1,13 @@
 export type SurveyId = "bad-01" | "bad-02";
 export type Answer = string | string[] | null;
 export type SurveyAnswers = Record<string, Answer>;
-export type SurveyResponse = { version: 1; answers: SurveyAnswers };
+export type SurveyResponse = { version: 2; answers: SurveyAnswers };
+export type Choice = { id: string; label: string };
 export type Question = {
   id: string;
   label: string;
   kind: "multiple" | "single" | "score" | "text";
-  options?: string[];
+  options?: Choice[];
 };
 
 export const MAX_TEXT_LENGTH = 500;
@@ -22,24 +23,33 @@ export const surveys: Record<
         id: "visitor",
         label: "あなたについて 教えてくれる？",
         kind: "multiple",
-        options: ["小学生", "親子", "iU関係者", "その他"],
+        options: [
+          { id: "elementary", label: "小学生" },
+          { id: "family", label: "親子" },
+          { id: "iu", label: "iU関係者" },
+          { id: "other", label: "その他" },
+        ],
       },
       {
         id: "discovery",
         label: "このお祭りを どこで知ったのかしら？",
         kind: "single",
         options: [
-          "ポスター・チラシ",
-          "がっこうのおしらせ",
-          "おうちの人・お友達から聞いて",
-          "Instagram",
+          { id: "poster", label: "ポスター・チラシ" },
+          { id: "school", label: "がっこうのおしらせ" },
+          { id: "word-of-mouth", label: "おうちの人・お友達から聞いて" },
+          { id: "instagram", label: "Instagram" },
         ],
       },
       {
         id: "satisfaction",
         label: "きょうのiUFesは どのくらいたのしかったかしら？",
         kind: "single",
-        options: ["めっちゃたのしかった！", "たのしかった！", "ふつうかな"],
+        options: [
+          { id: "very-happy", label: "めっちゃたのしかった！" },
+          { id: "happy", label: "たのしかった！" },
+          { id: "neutral", label: "ふつうかな" },
+        ],
       },
       {
         id: "recommendation",
@@ -67,7 +77,11 @@ export const surveys: Record<
         id: "return",
         label: "つぎのiUFesも またあそびに来たいか？",
         kind: "single",
-        options: ["ぜったい行きたい！", "行きたい！", "わからない"],
+        options: [
+          { id: "definitely", label: "ぜったい行きたい！" },
+          { id: "yes", label: "行きたい！" },
+          { id: "unsure", label: "わからない" },
+        ],
       },
       {
         id: "wish",
@@ -87,6 +101,105 @@ export function isSurveyId(id: string): id is SurveyId {
   return id === "bad-01" || id === "bad-02";
 }
 
+// Historical storage contracts: never edit these when changing display copy.
+// A semantic question/option change requires a new response version and reader.
+const responseQuestionsV2: Record<
+  SurveyId,
+  { id: string; kind: Question["kind"]; options?: string[] }[]
+> = {
+  "bad-01": [
+    {
+      id: "visitor",
+      kind: "multiple",
+      options: ["elementary", "family", "iu", "other"],
+    },
+    {
+      id: "discovery",
+      kind: "single",
+      options: ["poster", "school", "word-of-mouth", "instagram"],
+    },
+    {
+      id: "satisfaction",
+      kind: "single",
+      options: ["very-happy", "happy", "neutral"],
+    },
+    { id: "recommendation", kind: "score" },
+  ],
+  "bad-02": [
+    { id: "favorite", kind: "text" },
+    { id: "improvement", kind: "text" },
+    { id: "return", kind: "single", options: ["definitely", "yes", "unsure"] },
+    { id: "wish", kind: "text" },
+    { id: "message", kind: "text" },
+  ],
+};
+
+const legacyChoices: Record<string, Record<string, string>> = {
+  visitor: {
+    小学生: "elementary",
+    親子: "family",
+    iU関係者: "iu",
+    その他: "other",
+  },
+  discovery: {
+    "ポスター・チラシ": "poster",
+    がっこうのおしらせ: "school",
+    "おうちの人・お友達から聞いて": "word-of-mouth",
+    Instagram: "instagram",
+  },
+  satisfaction: {
+    "めっちゃたのしかった！": "very-happy",
+    "たのしかった！": "happy",
+    ふつうかな: "neutral",
+  },
+  return: {
+    "ぜったい行きたい！": "definitely",
+    "行きたい！": "yes",
+    わからない: "unsure",
+  },
+};
+
+export function readSurveyResponse(
+  id: SurveyId,
+  value: unknown,
+): SurveyResponse | undefined {
+  if (!value || typeof value !== "object") return;
+  const response = value as { version?: unknown; answers?: unknown };
+  if (response.version !== 1 && response.version !== 2) return;
+  let input = response.answers;
+  if (
+    response.version === 1 &&
+    input &&
+    typeof input === "object" &&
+    !Array.isArray(input)
+  ) {
+    const converted: Record<string, unknown> = { ...input };
+    for (const question of responseQuestionsV2[id]) {
+      const mapping = legacyChoices[question.id];
+      const answer = converted[question.id];
+      if (!mapping || answer === undefined || answer === null || answer === "")
+        continue;
+      const convert = (choice: unknown) =>
+        typeof choice === "string" && Object.hasOwn(mapping, choice)
+          ? mapping[choice]
+          : undefined;
+      if (Array.isArray(answer)) {
+        const choices = answer.map(convert);
+        if (choices.some((choice) => choice === undefined)) return;
+        converted[question.id] = choices;
+      } else {
+        const choice = convert(answer);
+        if (choice === undefined) return;
+        converted[question.id] = choice;
+      }
+    }
+    input = converted;
+  }
+  const checked = validateAnswers(id, input);
+  if (Object.keys(checked.errors).length) return;
+  return { version: 2, answers: checked.answers };
+}
+
 /** Empty answers are intentional non-responses, never fabricated scores or text. */
 export function validateAnswers(
   id: SurveyId,
@@ -102,7 +215,7 @@ export function validateAnswers(
       ? (value as Record<string, unknown>)
       : null;
   if (!input) errors.form = "回答を確認して、もう一度お試しください。";
-  for (const question of surveys[id].questions) {
+  for (const question of responseQuestionsV2[id]) {
     const answer = input?.[question.id];
     if (answer === undefined || answer === null || answer === "") {
       answers[question.id] = null;

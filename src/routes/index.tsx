@@ -13,6 +13,9 @@ import {
   isGhostComplete,
   isRallyComplete,
   loadProgress,
+  mergeProgress,
+  STORAGE_KEY,
+  LEGACY_STORAGE_KEY,
   recordGoodConversation,
   saveProgress,
   type Ghost,
@@ -22,7 +25,8 @@ import { isSurveyId, surveys, type SurveyAnswers } from "../lib/survey";
 
 export const Route = createFileRoute("/")({ component: RallyPage });
 type Screen = "title" | "help" | "map" | "unlock" | "ending" | "reception";
-type StorageIssue = "unavailable" | "repaired" | "migrated" | "unsaved" | null;
+type StorageIssue =
+  "unavailable" | "repaired" | "migrated" | "unsaved" | "unsupported" | null;
 const emptyDraft: SurveyAnswers = {};
 
 function RallyPage() {
@@ -44,12 +48,19 @@ function RallyPage() {
   const goodComplete = hasAllGoodStamps(progress);
   const complete = isRallyComplete(progress);
   const activeGhost = getGhost(activeGhostId);
+  const earnedNextScreen = complete ? "ending" : earned?.nextScreen;
 
   function persistProgress(next: Progress) {
     const result = saveProgress(next);
     progressRef.current = result.progress;
     setProgress(result.progress);
-    setStorageIssue(result.ok ? null : "unsaved");
+    setStorageIssue(
+      result.ok
+        ? null
+        : result.reason === "unsupported"
+          ? "unsupported"
+          : "unsaved",
+    );
     return result.progress;
   }
 
@@ -63,7 +74,8 @@ function RallyPage() {
     if (
       loaded.status === "unavailable" ||
       loaded.status === "repaired" ||
-      loaded.status === "migrated"
+      loaded.status === "migrated" ||
+      loaded.status === "unsupported"
     )
       setStorageIssue(loaded.status);
     setScreen(
@@ -82,6 +94,67 @@ function RallyPage() {
       window.history.replaceState(window.history.state, "", cleanPath);
     }
     setReady(true);
+  }, []);
+
+  useEffect(() => {
+    function syncProgress() {
+      const loaded = loadProgress();
+      if (loaded.status === "unsupported" || loaded.status === "unavailable") {
+        const status = loaded.status;
+        setStorageIssue((previous) =>
+          previous === "unsaved" && status === "unavailable"
+            ? previous
+            : status,
+        );
+        return;
+      }
+      // Saved answers win conflicts; unsaved local stamps/answers remain available for retry.
+      const previousProgress = progressRef.current;
+      const next = mergeProgress(loaded.progress, previousProgress);
+      const becameComplete =
+        !isRallyComplete(previousProgress) && isRallyComplete(next);
+      const becameStarted = !previousProgress.hasStarted && next.hasStarted;
+      progressRef.current = next;
+      setProgress(next);
+      setStorageIssue((previous) => {
+        if (previous === "unsaved") return previous;
+        if (loaded.status === "migrated" || loaded.status === "repaired")
+          return loaded.status;
+        return JSON.stringify(next) === JSON.stringify(loaded.progress)
+          ? null
+          : "unsaved";
+      });
+      setScreen((previous) => {
+        // Sync only causes navigation when progress crosses a boundary.
+        // Refocusing an unchanged page must preserve the screen chosen by the user.
+        if (becameComplete)
+          return previous === "reception" ? previous : "ending";
+        if (becameStarted && (previous === "title" || previous === "help"))
+          return "map";
+        return previous;
+      });
+    }
+    function onStorage(event: StorageEvent) {
+      if (
+        event.key === STORAGE_KEY ||
+        event.key === LEGACY_STORAGE_KEY ||
+        event.key === null
+      )
+        syncProgress();
+    }
+    function onVisible() {
+      if (document.visibilityState === "visible") syncProgress();
+    }
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("pageshow", syncProgress);
+    window.addEventListener("focus", syncProgress);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("pageshow", syncProgress);
+      window.removeEventListener("focus", syncProgress);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   useEffect(() => {
@@ -126,7 +199,10 @@ function RallyPage() {
   }
 
   function dismissEarned() {
-    if (earned) setScreen(earned.nextScreen);
+    if (earned)
+      setScreen(
+        isRallyComplete(progressRef.current) ? "ending" : earned.nextScreen,
+      );
     setEarned(null);
   }
 
@@ -134,7 +210,11 @@ function RallyPage() {
   const storageNotice = storageIssue ? (
     <ProgressStorageNotice
       issue={storageIssue}
-      onRetry={() => persistProgress(progressRef.current)}
+      onRetry={() =>
+        storageIssue === "unsupported"
+          ? window.location.reload()
+          : persistProgress(progressRef.current)
+      }
     />
   ) : null;
   const markers = [...goodGhosts, ...(goodComplete ? badGhosts : [])];
@@ -389,9 +469,9 @@ function RallyPage() {
           </p>
           <p className="dialog-detail">スタンプを獲得したよ！</p>
           <button className="action" onClick={dismissEarned}>
-            {earned.nextScreen === "ending"
+            {earnedNextScreen === "ending"
               ? "コンプリート画面へ！"
-              : earned.nextScreen === "unlock"
+              : earnedNextScreen === "unlock"
                 ? "新しい気配をたしかめる！"
                 : "マップにもどる"}
           </button>
@@ -414,7 +494,9 @@ function ProgressStorageNotice({
     repaired:
       "保存データの一部を読み込めませんでした。確認できたスタンプを表示しています。取得状況を確認してください。",
     migrated:
-      "前のプロトタイプのスタンプを引き継ぎました。悪いおばけは、会話を終えると新しくスタンプがつきます。",
+      "前の保存データからスタンプと完了した回答を引き継ぎました。旧版の訪問記録だけの場合は、もう一度会話を終えてください。",
+    unsupported:
+      "この画面では読み込めない新しい保存データがあります。保存済みの進捗を守るため上書きを止めています。ページを再読み込みしてください。この画面だけに残っている未保存の進捗は、再読み込みすると失われます。",
     unsaved:
       "進捗と回答を保存できませんでした。この画面には反映されていますが、画面を閉じると失われる可能性があります。",
   }[issue];
@@ -422,7 +504,7 @@ function ProgressStorageNotice({
     <section className="storage-notice" aria-label="進捗の保存状況">
       <p role={issue === "migrated" ? "status" : "alert"}>{text}</p>
       <button type="button" onClick={onRetry}>
-        進捗の保存を再試行
+        {issue === "unsupported" ? "ページを再読み込み" : "進捗の保存を再試行"}
       </button>
     </section>
   );

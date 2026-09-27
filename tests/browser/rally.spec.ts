@@ -1,5 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
-import { STORAGE_KEY, emptyProgress, goodGhosts } from "../../src/lib/rally";
+import {
+  STORAGE_KEY,
+  LEGACY_STORAGE_KEY,
+  emptyProgress,
+  goodGhosts,
+  completeBadConversation,
+} from "../../src/lib/rally";
 
 async function seedUnlocked(page: Page) {
   await page.goto("/");
@@ -251,4 +257,247 @@ test("failed survey writes keep answers until storage retry succeeds", async ({
       STORAGE_KEY,
     ),
   ).toBe("工作が楽しかった");
+});
+
+test("another NFC tab unlocks the original map and updates its ending", async ({
+  page,
+  context,
+}) => {
+  await seedUnlocked(page);
+  await page.evaluate((key) => {
+    const progress = JSON.parse(localStorage.getItem(key)!);
+    progress.goodStampIds.pop();
+    localStorage.setItem(key, JSON.stringify(progress));
+  }, STORAGE_KEY);
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "良いおばけ 05は未発見" }),
+  ).toBeDisabled();
+  const tag = await context.newPage();
+  await tag.goto("/?id=good-05");
+  await tag.getByRole("button", { name: "会話を終えてスタンプを獲得" }).click();
+  await expect(
+    page.getByRole("button", { name: "良いおばけ 05ともう一度話す" }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "メデューサは未発見" }),
+  ).toBeVisible();
+  await tag.goto("/?id=bad-01");
+  await tag
+    .getByRole("button", { name: "メデューサを げんきづける！" })
+    .click();
+  await tag.goto("/?id=bad-02");
+  await tag
+    .getByRole("button", { name: "ヴァンパイアに ほうこくする！" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "全部のおばけと なかよくなれたよ！" }),
+  ).toBeVisible();
+});
+
+test("tab sync preserves drafts and unsaved answers through retry", async ({
+  page,
+  context,
+}) => {
+  await seedUnlocked(page);
+  await page.goto("/?id=bad-02");
+  await page.getByRole("textbox").first().fill("同期しても残る感想");
+  const tag = await context.newPage();
+  await tag.goto("/?id=bad-01");
+  await tag.getByRole("radio", { name: "0点", exact: true }).check();
+  await tag
+    .getByRole("button", { name: "メデューサを げんきづける！" })
+    .click();
+  await expect(page.getByRole("textbox").first()).toHaveValue(
+    "同期しても残る感想",
+  );
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Object.assign(window, {
+      restoreRallyStorage: () => {
+        Storage.prototype.setItem = original;
+      },
+    });
+    Storage.prototype.setItem = () => {
+      throw new Error("test quota");
+    };
+  });
+  await page
+    .getByRole("button", { name: "ヴァンパイアに ほうこくする！" })
+    .click();
+  // Resume from a browser/page suspension with an unsaved response in memory.
+  await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
+    "保存できませんでした",
+  );
+  await page.evaluate(() =>
+    (
+      window as typeof window & { restoreRallyStorage: () => void }
+    ).restoreRallyStorage(),
+  );
+  await page.getByRole("button", { name: "進捗の保存を再試行" }).click();
+  await page.getByRole("button", { name: "コンプリート画面へ！" }).click();
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "全部のおばけと なかよくなれたよ！" }),
+  ).toBeVisible();
+  const responses = await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key)!).surveyResponses,
+    STORAGE_KEY,
+  );
+  expect(responses["bad-01"].answers.recommendation).toBe("0");
+  expect(responses["bad-02"].answers.favorite).toBe("同期しても残る感想");
+});
+
+test("newer saved versions are protected even when introduced after page load", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/?id=good-01");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  const tag = await context.newPage();
+  await tag.goto("/");
+  const future = JSON.stringify({
+    ...emptyProgress(),
+    schemaVersion: 99,
+    goodStampIds: ["good-02"],
+  });
+  await tag.evaluate(({ key, raw }) => localStorage.setItem(key, raw), {
+    key: STORAGE_KEY,
+    raw: future,
+  });
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
+    "上書きを止めています",
+  );
+  await page
+    .getByRole("button", { name: "会話を終えてスタンプを獲得" })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "ページを再読み込み" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY),
+  ).toBe(future);
+  await page.reload();
+  await expect(page.getByRole("alert")).toContainText("上書きを止めています");
+  expect(
+    await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY),
+  ).toBe(future);
+});
+
+test("legacy answers migrate to stable IDs while the original data stays intact", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "ぼうけんを はじめる！" }).waitFor();
+  const legacy = JSON.stringify({
+    schemaVersion: 2,
+    hasStarted: true,
+    goodStampIds: goodGhosts.map((g) => g.id),
+    surveyResponses: {
+      "bad-01": {
+        version: 1,
+        answers: {
+          visitor: ["親子"],
+          satisfaction: "たのしかった！",
+          recommendation: "0",
+        },
+      },
+    },
+  });
+  await page.evaluate(({ key, raw }) => localStorage.setItem(key, raw), {
+    key: LEGACY_STORAGE_KEY,
+    raw: legacy,
+  });
+  await page.goto("/?id=bad-02");
+  await page
+    .getByRole("button", { name: "ヴァンパイアに ほうこくする！" })
+    .click();
+  await page.getByRole("button", { name: "コンプリート画面へ！" }).click();
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "全部のおばけと なかよくなれたよ！" }),
+  ).toBeVisible();
+  const saved = await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key)!),
+    STORAGE_KEY,
+  );
+  expect(saved.surveyResponses["bad-01"].answers.visitor).toEqual(["family"]);
+  expect(saved.surveyResponses["bad-01"].answers.satisfaction).toBe("happy");
+  expect(
+    await page.evaluate((key) => localStorage.getItem(key), LEGACY_STORAGE_KEY),
+  ).toBe(legacy);
+});
+
+test("unchanged resume events preserve help and the map after completion", async ({
+  page,
+}) => {
+  await seedUnlocked(page);
+  await page.reload();
+  await page.getByRole("button", { name: "あそびかたをみる" }).click();
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("focus"));
+    window.dispatchEvent(new Event("pageshow"));
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(
+    page.getByRole("heading", {
+      name: "iUFesを楽しんでいる おばけをさがそう！",
+    }),
+  ).toBeVisible();
+  let completed = {
+    ...emptyProgress(),
+    hasStarted: true,
+    goodStampIds: goodGhosts.map((g) => g.id),
+  };
+  completed = completeBadConversation(completed, "bad-01", {}).progress;
+  completed = completeBadConversation(completed, "bad-02", {}).progress;
+  await page.evaluate(
+    ({ key, progress }) => localStorage.setItem(key, JSON.stringify(progress)),
+    { key: STORAGE_KEY, progress: completed },
+  );
+  // A real completion discovered on resume still navigates to the ending.
+  await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
+  await expect(
+    page.getByRole("heading", { name: "全部のおばけと なかよくなれたよ！" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "マップ・ずかんにもどる" }).click();
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("focus"));
+    window.dispatchEvent(new Event("pageshow"));
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(
+    page.getByRole("heading", { name: "おばけのかげを さがそう！" }),
+  ).toBeVisible();
+});
+
+test("earned card follows completion synced from another tab", async ({
+  page,
+  context,
+}) => {
+  await seedUnlocked(page);
+  await page.goto("/?id=bad-01");
+  await page
+    .getByRole("button", { name: "メデューサを げんきづける！" })
+    .click();
+  await expect(
+    page
+      .getByRole("dialog")
+      .getByRole("button", { name: "マップにもどる", exact: true }),
+  ).toBeVisible();
+  const tag = await context.newPage();
+  await tag.goto("/?id=bad-02");
+  await tag
+    .getByRole("button", { name: "ヴァンパイアに ほうこくする！" })
+    .click();
+  await expect(
+    page
+      .getByRole("dialog")
+      .getByRole("button", { name: "コンプリート画面へ！" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "コンプリート画面へ！" }).click();
+  await expect(
+    page.getByRole("heading", { name: "全部のおばけと なかよくなれたよ！" }),
+  ).toBeVisible();
 });

@@ -127,7 +127,10 @@ export function GhostDialog({
   );
 }
 
-const scoreChoices = Array.from({ length: 11 }, (_, score) => String(score));
+const scoreChoices = Array.from({ length: 11 }, (_, score) => ({
+  id: String(score),
+  label: String(score),
+}));
 
 function SurveyForm({
   id,
@@ -184,9 +187,7 @@ function SurveyForm({
         const errorId = `${id}-${question.id}-error`;
         const value = draft[question.id];
         const choices =
-          question.kind === "score"
-            ? scoreChoices
-            : question.options;
+          question.kind === "score" ? scoreChoices : question.options;
         return (
           <fieldset
             key={question.id}
@@ -229,17 +230,17 @@ function SurveyForm({
                   }
                 >
                   {choices?.map((option) => (
-                    <label key={option}>
+                    <label key={option.id}>
                       <input
                         type={
                           question.kind === "multiple" ? "checkbox" : "radio"
                         }
                         name={`${id}-${question.id}`}
-                        value={option}
+                        value={option.id}
                         checked={
                           question.kind === "multiple"
-                            ? Array.isArray(value) && value.includes(option)
-                            : value === option
+                            ? Array.isArray(value) && value.includes(option.id)
+                            : value === option.id
                         }
                         onChange={(event) => {
                           if (question.kind === "multiple") {
@@ -247,14 +248,14 @@ function SurveyForm({
                             update(
                               question.id,
                               event.target.checked
-                                ? [...selected, option]
-                                : selected.filter((item) => item !== option),
+                                ? [...selected, option.id]
+                                : selected.filter((item) => item !== option.id),
                             );
-                          } else update(question.id, option);
+                          } else update(question.id, option.id);
                         }}
                       />
                       <span>
-                        {option}
+                        {option.label}
                         {question.kind === "score" ? "点" : ""}
                       </span>
                     </label>
