@@ -17,11 +17,11 @@ export const surveys: Record<
 > = {
   "bad-01": {
     button: "メデューサを げんきづける！",
-    thanks: "まぁ！教えてくれてありがとう！これで私も にっこり笑顔になれたわ！",
+    thanks: "まぁ！教えてくれて ありがとう！これで私も にっこり笑顔になれたわ！",
     questions: [
       {
         id: "visitor",
-        label: "あなたについて 教えてくれる？",
+        label: "あなたに ついて 教えてくれる？",
         kind: "multiple",
         options: [
           { id: "elementary", label: "小学生" },
@@ -32,7 +32,7 @@ export const surveys: Record<
       },
       {
         id: "discovery",
-        label: "このお祭りを どこで知ったのかしら？",
+        label: "このお祭りを どこで 知ったのかしら？",
         kind: "single",
         options: [
           { id: "poster", label: "ポスター・チラシ" },
@@ -43,7 +43,7 @@ export const surveys: Record<
       },
       {
         id: "satisfaction",
-        label: "きょうのiUFesは どのくらいたのしかったかしら？",
+        label: "きょうの iUFesは どのくらい たのしかったかしら？",
         kind: "single",
         options: [
           { id: "very-happy", label: "めっちゃたのしかった！" },
@@ -64,18 +64,18 @@ export const surveys: Record<
     questions: [
       {
         id: "favorite",
-        label: "一番「おもしろい！」って思った お店やあそびは何だった？",
+        label: "一番「おもしろい！」って思った お店やあそびは 何だった？",
         kind: "text",
       },
       {
         id: "improvement",
         label:
-          "「もうちょっと こうなったら もっと楽しいのにな〜」って思うところはあったか？",
+          "「もうちょっと こうなったら もっと楽しいのにな〜」って思うところは あったか？",
         kind: "text",
       },
       {
         id: "return",
-        label: "つぎのiUFesも またあそびに来たいか？",
+        label: "つぎの iUFes も また あそびに来たいか？",
         kind: "single",
         options: [
           { id: "definitely", label: "ぜったい行きたい！" },
@@ -85,12 +85,12 @@ export const surveys: Record<
       },
       {
         id: "wish",
-        label: "こんどは どんなお店やあそびがあったら うれしい？",
+        label: "こんどは どんな お店やあそびが あったら うれしい？",
         kind: "text",
       },
       {
         id: "message",
-        label: "最後に、ワタシやお祭りのみんなに メッセージをくれるか？",
+        label: "最後に、ワタシや お祭りのみんなに メッセージを くれるか？",
         kind: "text",
       },
     ],

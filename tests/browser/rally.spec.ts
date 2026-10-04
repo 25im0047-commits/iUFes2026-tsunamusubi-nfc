@@ -7,6 +7,9 @@ import {
   completeBadConversation,
 } from "../../src/lib/rally";
 
+const firstGoodGhost = goodGhosts[0]!;
+const lastGoodGhost = goodGhosts.at(-1)!;
+
 async function seedUnlocked(page: Page) {
   await page.goto("/");
   await expect(
@@ -92,12 +95,12 @@ test("dialog focus starts at its heading and returns to the triggering card", as
   await seedUnlocked(page);
   await page.reload();
   const card = page.getByRole("button", {
-    name: "良いおばけ 05ともう一度話す",
+    name: `${lastGoodGhost.name}ともう一度話す`,
   });
   if (hasTouch) await card.tap();
   else await card.click();
   await expect(
-    page.getByRole("heading", { name: "良いおばけ 05", exact: true }),
+    page.getByRole("heading", { name: lastGoodGhost.name, exact: true }),
   ).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(
@@ -149,7 +152,7 @@ test("participant flow preserves NFC parameters, gates surveys and completes wit
   await expect(page).toHaveURL(/\/\?source=test#map$/);
   await page.keyboard.press("Escape");
   await expect(
-    page.getByRole("button", { name: "良いおばけ 01は未発見" }),
+    page.getByRole("button", { name: `${firstGoodGhost.name}は未発見` }),
   ).toBeDisabled();
   for (const ghost of goodGhosts) {
     await page.goto(`/?id=${ghost.id}`);
@@ -181,10 +184,10 @@ test("participant flow preserves NFC parameters, gates surveys and completes wit
     .click();
   await page.getByRole("button", { name: "コンプリート画面へ！" }).click();
   await page
-    .getByRole("button", { name: "うけつけで プレゼントをもらう" })
+    .getByRole("button", { name: "景品受け取り場所で プレゼントをもらう" })
     .click();
   await expect(
-    page.getByRole("heading", { name: "この画面を 受付でみせてね！" }),
+    page.getByRole("heading", { name: "景品受け取り場所に 行って、この画面を みせてね！" }),
   ).toBeVisible();
   await page.reload();
   await expect(
@@ -271,13 +274,13 @@ test("another NFC tab unlocks the original map and updates its ending", async ({
   }, STORAGE_KEY);
   await page.reload();
   await expect(
-    page.getByRole("button", { name: "良いおばけ 05は未発見" }),
+    page.getByRole("button", { name: `${lastGoodGhost.name}は未発見` }),
   ).toBeDisabled();
   const tag = await context.newPage();
-  await tag.goto("/?id=good-05");
+  await tag.goto(`/?id=${lastGoodGhost.id}`);
   await tag.getByRole("button", { name: "会話を終えてスタンプを獲得" }).click();
   await expect(
-    page.getByRole("button", { name: "良いおばけ 05ともう一度話す" }),
+    page.getByRole("button", { name: `${lastGoodGhost.name}ともう一度話す` }),
   ).toBeEnabled();
   await expect(
     page.getByRole("button", { name: "メデューサは未発見" }),
