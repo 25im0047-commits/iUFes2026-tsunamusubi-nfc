@@ -148,6 +148,7 @@ export function GhostDialog({
           <button className="action" onClick={() => onFinish({})}>
             会話を終えてスタンプを獲得
           </button>
+          <p className="conversation-note">「×」で閉じると、スタンプはまだつかないよ。</p>
         </>
       )}
     </Dialog>

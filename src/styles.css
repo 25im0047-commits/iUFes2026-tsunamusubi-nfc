@@ -77,6 +77,9 @@ dialog.dialog > h2 { margin: 34px 0 24px; }
 .storage-notice button:focus-visible { outline-color: var(--purple); }
 .dialog .storage-notice { margin-top: 28px; }
 button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+.flow-panel button:focus-visible, .instruction button:focus-visible, .list-panel button:focus-visible, dialog button:focus-visible { outline-color: var(--purple); }
+.action { min-height: 48px; touch-action: manipulation; }
+.action:enabled:active, .close:active { transform: scale(.98); }
 .page { width: min(900px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 54px; background: var(--paper); }
 
 .instruction { padding: 42px 8px 23px; }.label { margin: 0; color: #7b737f; font-family: monospace; font-size: 10px; font-weight: 900; letter-spacing: .14em; }.instruction p:last-child { max-width: 650px; margin: 0; color: #645d69; font-size: 13px; line-height: 1.9; }
@@ -101,3 +104,107 @@ button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
 .shadow-pair .ghost-artwork { width: 92px; height: 105px; filter: brightness(0) drop-shadow(0 0 2px #b59ae6); }
 .stamp-art { padding: 10px; }
 .dialog-ghost { height: 180px; padding: 12px; }
+
+/* Keep the illustrations and participant actions at the center of the page. */
+body { background: #141117; }
+.page { width: min(900px, calc(100% - 32px)); padding: 0 28px 32px; margin: 24px auto; border-radius: 18px; overflow: clip; }
+.flow-panel { padding: clamp(28px, 6vw, 56px) 12px; }
+.flow-panel h1 { margin: 14px 0 24px; font-weight: 900; letter-spacing: -.045em; line-height: 1.45; }
+.flow-panel p, .how-to { font-size: 15px; }
+.flow-panel .label { font-size: 12px; }
+.title-panel { position: relative; margin: 0 -28px; padding: 40px 28px 30px; overflow: hidden; background: #251932; color: #fffdf8; }
+.title-panel > .label { display: inline-block; padding: 7px 13px; border: 2px solid #fffdf8; color: #fffdf8; font-size: 13px; letter-spacing: .08em; }
+.title-panel h1 { max-width: 550px; margin: 16px auto 12px; color: #fffdf8; font-size: clamp(30px, 5.5vw, 52px); line-height: 1.35; text-shadow: 3px 3px 0 #ae2865; }
+.title-panel h1 span { display: block; }
+.flow-panel h1:focus, .instruction h1:focus, .dialog > h2:focus { outline: none; }
+.title-panel > .title-tagline { margin: 20px 0 0; color: #f5b5d1; font-size: 13px; }
+.title-artwork { position: relative; display: grid; grid-template-columns: 1fr 1.1fr 1fr; align-items: end; gap: 6px; width: min(400px, 100%); min-height: 180px; margin: 18px auto 20px; }
+.title-ghosts { min-height: 170px; }
+.title-side-ghost { display: grid; place-items: center; height: 145px; padding-bottom: 8px; }
+.title-side-left { transform: rotate(-9deg); }
+.title-side-right { transform: rotate(8deg); }
+.title-side-ghost .ghost-artwork { width: 100%; height: 132px; }
+.title-sticker { position: absolute; right: 0; top: -4px; display: grid; place-items: center; width: 92px; height: 70px; border: 2px solid var(--ink); border-radius: 50%; background: var(--pink); color: #fff; box-shadow: 3px 3px 0 var(--ink); font-size: 13px; font-weight: 900; line-height: 1.45; transform: rotate(8deg); }
+.title-panel > p { position: relative; }
+.title-panel > .title-footnote { margin: 10px 0 0; color: #c5b4ce; font-size: 12px; }
+.title-panel .action { max-width: 380px; margin: 8px auto; box-shadow: 4px 4px 0 #0f0a14; }
+.action { min-height: 50px; padding: 14px 18px; border: 2px solid var(--ink); border-radius: 10px; font-size: 15px; line-height: 1.5; }
+.action:enabled:active, .close:active { transform: scale(.98); }
+.how-to { padding: 20px 20px 20px 42px; border-width: 2px; border-radius: 12px; }
+.how-to li::marker { color: var(--purple); font-weight: 900; }
+.instruction { padding: 32px 0 16px; }
+.instruction h1 { margin: 10px 0 12px; line-height: 1.4; letter-spacing: -.04em; font-weight: 900; }
+.instruction > p { max-width: 600px; margin-bottom: 0; font-size: 14px; line-height: 1.8; color: #625968; }
+.instruction .text-button { margin-top: 4px; padding-left: 0; font-size: 13px; }
+.map-shortcuts { display: flex; gap: 10px; margin-bottom: 22px; }
+.map-shortcuts a { display: grid; place-items: center; flex: 1; min-height: 46px; padding: 10px 14px; border: 2px solid var(--ink); border-radius: 9px; color: var(--ink); background: #fff; font-size: 14px; font-weight: 800; text-decoration: none; }
+.map-shortcuts a:first-child { background: #eddfff; }
+.map-shortcuts a:last-child { background: #ffddec; }
+.map-shortcuts a:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
+#venue-heading, #ghost-book { scroll-margin-top: 24px; }
+.panel { margin-top: 24px; padding: 22px; border: 2px solid var(--ink); border-radius: 12px; box-shadow: none; }
+.panel-title h2, .stamp-heading h2 { font-size: 20px; }
+.panel > p { font-size: 13px; color: #65596b; }
+.progress.panel { margin-top: 0; background: #ffe6f1; box-shadow: 4px 4px 0 #ead9e3; }
+.progress .panel-title h2 { max-width: 70%; font-size: 17px; }
+.progress-bar { height: 13px; margin: 18px 0 12px; border-width: 2px; border-radius: 20px; }
+.panel > .collection-summary { margin-top: 10px; color: #76234c; font-weight: 800; }
+.stamp-heading { border-bottom-width: 2px; }
+.stamp-heading > span { flex-shrink: 0; font-size: 11px; }
+.list-help { margin-top: 14px !important; font-size: 13px !important; line-height: 1.8; }
+.ghost-list { gap: 14px; padding-top: 20px; }
+.status-row { border-width: 2px; border-top-width: 7px; border-radius: 10px; transform: none; }
+.status-row:nth-child(2n) { transform: none; }
+.stamp-art { background: #f0ebf1; }
+.status-row.done .stamp-art { background: #fff3f8; }
+.stamp-meta { border-top: 1px solid #e7dfe9; padding: 12px 12px 8px; }
+.stamp-meta span { font-size: 14px; line-height: 1.5; }
+.stamp-meta small { font-size: 11px; line-height: 1.65; color: #74687c; }
+.status-row em { padding: 0 12px 12px; font-size: 11px; }
+.status-row.done em { color: #a52860; }
+.message { padding: 16px; border-width: 2px; border-radius: 9px; font-size: 13px !important; line-height: 1.8; }
+.reception { padding: 18px; border-width: 2px; border-radius: 10px; }
+.reception strong { font-size: 15px; }
+.reception span { font-size: 13px; line-height: 1.8; }
+.reception .action { margin-top: 12px; }
+.page footer { margin-top: 32px; padding-top: 18px; border-top: 1px solid #d9cfdc; font-size: 10px; line-height: 1.8; }
+.page.flow-title footer { border-top: 0; }
+.dialog { padding: 22px 24px 24px; border-width: 2px; border-radius: 14px; box-shadow: 6px 6px 0 var(--pink); }
+.close { border-width: 2px; border-radius: 8px; }
+.dialog-ghost { border: 0; border-radius: 10px; background: #fff0f7; }
+.dialog-location { font-size: 12px; line-height: 1.7; }
+.speech { padding: 18px; border-width: 2px; border-radius: 10px; font-size: 15px; line-height: 1.9; }
+.speech:after { border-width: 2px; }
+.dialog-detail { font-size: 13px; line-height: 1.8; }
+.conversation-note { margin: 12px 0 0; color: #766c7c; font-size: 12px; line-height: 1.7; text-align: center; }
+.survey fieldset { border-color: #c8b5d2; border-radius: 10px; }
+.survey-choices label, .skip-answer { border-radius: 8px; }
+.survey textarea { border-radius: 8px; }
+.storage-notice { border-width: 2px; border-radius: 10px; }
+.flow-panel button:focus-visible, .instruction button:focus-visible, .list-panel button:focus-visible, dialog button:focus-visible { outline-color: var(--purple); }
+.title-panel button:focus-visible { outline-color: #fff; }
+@media (hover: hover) and (pointer: fine) {
+  .status-row.is-actionable:hover { transform: translateY(-2px); box-shadow: 2px 3px 0 #d2b1c2; }
+  .map-shortcuts a:hover { border-color: var(--purple); }
+}
+@media (max-width: 650px) {
+  .page { width: calc(100% - 24px); padding: 0 16px 24px; margin: 12px auto; border-radius: 14px; }
+  .title-panel { margin: 0 -16px; padding: 30px 20px 24px; }
+  .title-artwork { width: min(310px, 100%); }
+  .title-panel h1 { font-size: clamp(29px, 7.5vw, 40px); }
+  .panel { padding: 18px 14px; }
+  .ghost-list { gap: 12px; }
+  .stamp-meta { padding: 10px 10px 8px; }
+  .stamp-meta span { font-size: 13px; }
+  .stamp-meta small { font-size: 10px; }
+  .status-row em { padding: 0 10px 10px; font-size: 10px; }
+  .stamp-heading { gap: 8px; align-items: start; }
+  .stamp-heading > span { max-width: 90px; text-align: right; }
+  .dialog { padding-right: 18px; padding-left: 18px; }
+  .title-sticker { width: 78px; height: 62px; font-size: 12px; }
+}
+@media (max-width: 390px) {
+  .title-ghosts .ghost-artwork { width: 125px; }
+  .title-side-ghost .ghost-artwork { height: 105px; }
+  .progress .panel-title h2 { font-size: 15px; }
+}

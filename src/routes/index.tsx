@@ -1,8 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Dialog, GhostDialog, GhostImage } from "../components/GhostDialog";
 import { readNfcUrl } from "../lib/nfc";
 import { VenueMap } from "../components/VenueMap";
+import { RallyTitle } from "../components/RallyTitle";
 import { getGhostPlacement, prizeLocation, type WeatherMode } from "../lib/venue";
 import {
   badGhosts,
@@ -34,6 +35,8 @@ const emptyDraft: SurveyAnswers = {};
 const WEATHER_STORAGE_KEY = "iufes2026-system-prototype-weather";
 
 function RallyPage() {
+  const router = useRouter();
+  const href = useLocation({ select: (location) => location.href });
   const [progress, setProgress] = useState<Progress>(emptyProgress);
   const progressRef = useRef(progress);
   const initialized = useRef(false);
@@ -109,20 +112,27 @@ function RallyPage() {
     setScreen(
       isRallyComplete(saved) ? "ending" : saved.hasStarted ? "map" : "title",
     );
-    const { id, cleanPath } = readNfcUrl(window.location.href);
-    if (id !== null) {
-      setScreen("map");
-      if (!getGhost(id))
-        setMessage("このおばけは見つかりませんでした。タグを確認してね。");
-      else if (!canOpenGhost(saved, id))
-        setMessage(
-          "まずは いいおばけ全員と なかよくなろう！そのあと、もう一度ここでタッチしてね。",
-        );
-      else setActiveGhostId(id);
-      window.history.replaceState(window.history.state, "", cleanPath);
-    }
     setReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    const { id, cleanPath } = readNfcUrl(new URL(href, window.location.origin).href);
+    if (id === null) return;
+    // Observe router navigation as well as first loads; cleanup also uses its history.
+    setScreen("map");
+    setEarned(null);
+    setActiveGhostId(null);
+    setMessage("");
+    if (!getGhost(id))
+      setMessage("このおばけは見つかりませんでした。タグを確認してね。");
+    else if (!canOpenGhost(progressRef.current, id))
+      setMessage(
+        "まずは いいおばけ全員と なかよくなろう！そのあと、もう一度ここでタッチしてね。",
+      );
+    else setActiveGhostId(id);
+    router.history.replace(cleanPath, router.history.location.state);
+  }, [ready, href, router]);
 
   useEffect(() => {
     function syncProgress() {
@@ -257,17 +267,7 @@ function RallyPage() {
     <main className={`page flow-${screen}`}>
       {!activeGhost && !earned && storageNotice}
       {screen === "title" && (
-        <section className="flow-panel title-panel">
-          <p className="label">iU Fes 2026</p>
-          {heading("おばけさがし スタンプラリー！")}
-          <div className="title-ghosts" aria-hidden="true">
-            <GhostImage ghost={goodGhosts[0]} />
-          </div>
-          <p>おばけたちと タッチして なかよくなろう！</p>
-          <button className="action" onClick={() => setScreen("help")}>
-            ぼうけんを はじめる！
-          </button>
-        </section>
+        <RallyTitle headingRef={headingRef} onStart={() => setScreen("help")} />
       )}
 
       {screen === "help" && (
@@ -314,7 +314,7 @@ function RallyPage() {
       {screen === "map" && (
         <>
           <section className="instruction">
-            <p className="label">おばけマップ</p>
+            <p className="label">iU Fes 2026 ・ おばけマップ</p>
             {heading("おばけのかげを さがそう！")}
             <p>
               かげがある場所に行って、おばけの持っているものに
@@ -324,6 +324,10 @@ function RallyPage() {
               あそびかたをみる
             </button>
           </section>
+          <nav className="map-shortcuts" aria-label="マップとずかん">
+            <a href="#venue-heading">会場マップ</a>
+            <a href="#ghost-book">おばけずかん</a>
+          </nav>
           {message && (
             <p className="message" role="status">
               {message}
@@ -336,7 +340,14 @@ function RallyPage() {
                 {progress.goodStampIds.length} / {goodGhosts.length}
               </strong>
             </div>
-            <div className="progress-bar">
+            <div
+              className="progress-bar"
+              role="progressbar"
+              aria-label="いいおばけのスタンプ取得数"
+              aria-valuemin={0}
+              aria-valuemax={goodGhosts.length}
+              aria-valuenow={progress.goodStampIds.length}
+            >
               <span
                 style={{
                   width: `${goodGhosts.length ? (progress.goodStampIds.length / goodGhosts.length) * 100 : 0}%`,
@@ -347,6 +358,9 @@ function RallyPage() {
               {goodComplete
                 ? "あやしいかげが2つ出現！どちらからでも会いにいけるよ。"
                 : "会話を終えると スタンプがつくよ。"}
+            </p>
+            <p className="collection-summary">
+              ぜんぶで {progress.goodStampIds.length + progress.badStampIds.length} / {goodGhosts.length + badGhosts.length} 体と なかよし！
             </p>
           </section>
           <VenueMap
@@ -360,7 +374,7 @@ function RallyPage() {
             <div className="stamp-heading">
               <div>
                 <p className="label">ともだちコレクション</p>
-                <h2>おばけずかん</h2>
+                <h2 id="ghost-book">おばけずかん</h2>
               </div>
               <span>{complete ? "コンプリート！" : "あつめよう！"}</span>
             </div>

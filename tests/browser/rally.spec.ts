@@ -10,6 +10,40 @@ import {
 const firstGoodGhost = goodGhosts[0]!;
 const lastGoodGhost = goodGhosts.at(-1)!;
 
+test("NFC navigation in an already open page opens the conversation and clears stale errors", async ({ page }) => {
+  await page.goto("/?id=unknown");
+  await expect(page.getByRole("status")).toContainText("このおばけは見つかりませんでした");
+  // Reuse the same React page rather than reloading the document for every tag.
+  await page.evaluate(() => history.pushState(history.state, "", "/?id=good-01&source=nfc#ghost-book"));
+  await expect(page.getByRole("dialog")).toHaveAccessibleName(firstGoodGhost.name);
+  await expect(page).toHaveURL(/\/\?source=nfc#ghost-book$/);
+  await expect(page.getByRole("status")).toHaveCount(0);
+  await page.getByRole("button", { name: "会話を終えてスタンプを獲得", exact: true }).click();
+  await page.getByRole("button", { name: "マップにもどる", exact: true }).click();
+  await expect(page.getByRole("progressbar", { name: "いいおばけのスタンプ取得数" })).toHaveAttribute("aria-valuenow", "1");
+  await page.evaluate(() => history.pushState(history.state, "", "/?id=good-02"));
+  await expect(page.getByRole("dialog")).toHaveAccessibleName(goodGhosts[1].name);
+  await page.getByRole("button", { name: "閉じる", exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  await expect(page.getByRole("button", { name: `${firstGoodGhost.name}ともう一度話す`, exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: `${goodGhosts[1].name}は未発見`, exact: true })).toBeDisabled();
+});
+
+test("map and collection shortcuts keep the rally progress and weather intact", async ({ page }) => {
+  await page.goto("/?id=good-01");
+  await page.getByRole("button", { name: "会話を終えてスタンプを獲得", exact: true }).click();
+  await page.getByRole("button", { name: "マップにもどる", exact: true }).click();
+  await page.getByRole("radio", { name: "雨天", exact: true }).check();
+  const saved = await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY);
+  await page.getByRole("link", { name: "おばけずかん", exact: true }).click();
+  await expect(page.locator("#ghost-book")).toBeInViewport();
+  await page.getByRole("link", { name: "会場マップ", exact: true }).click();
+  await expect(page.locator("#venue-heading")).toBeInViewport();
+  await expect(page.getByRole("radio", { name: "雨天", exact: true })).toBeChecked();
+  expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBe(saved);
+});
+
 async function seedUnlocked(page: Page) {
   await page.goto("/");
   await expect(

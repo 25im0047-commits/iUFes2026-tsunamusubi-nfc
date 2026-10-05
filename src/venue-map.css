@@ -1,4 +1,7 @@
 .venue-panel .venue-weather { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0 8px; padding: 12px; border: 2px solid var(--line); }
+.venue-panel .venue-weather { border-color: #d1c1d8; border-radius: 10px; background: #faf6fd; }
+.venue-weather label { border-radius: 8px; }
+.venue-weather label:has(input:checked) { background: #e6d9f8; box-shadow: inset 0 0 0 2px var(--purple); }
 .venue-weather legend { padding: 0 5px; font-size: 13px; font-weight: 700; }
 .venue-weather label { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 7px 14px; background: #f1ebff; cursor: pointer; font-size: 14px; font-weight: 700; }
 .venue-weather input { width: 18px; height: 18px; margin: 0; accent-color: var(--purple); }
@@ -7,6 +10,8 @@
 .venue-floors { display: flex; gap: 8px; margin: 16px 0 12px; }
 .venue-floors button { flex: 1; min-height: 44px; border: 2px solid var(--line); background: #fff; color: var(--ink); font-weight: 800; cursor: pointer; }
 .venue-floors button[aria-pressed="true"] { background: var(--purple); color: #fff; }
+.venue-floors button { border-radius: 8px; }
+.venue-floors button:active { transform: scale(.98); }
 .venue-floors button:focus-visible, .venue-scroll:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
 .venue-scroll { overflow-x: auto; border: 2px solid var(--line); background: #fff; }
 .venue-plan { position: relative; width: 100%; min-width: 680px; overflow: hidden; }
@@ -22,6 +27,7 @@
 .venue-panel > .venue-map-help { margin: 12px 0 16px; color: #645d69; font-size: 12px; line-height: 1.8; }
 .venue-locations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
 .venue-locations li { display: flex; align-items: start; gap: 10px; min-width: 0; padding: 12px; border: 1px solid #c9c2cc; background: #faf7ff; }
+.venue-locations li { border-radius: 9px; }
 .venue-locations .venue-number { flex: 0 0 auto; }
 .venue-locations li > div { display: grid; min-width: 0; gap: 4px; }
 .venue-locations strong { font-size: 13px; }
