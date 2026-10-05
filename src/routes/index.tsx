@@ -461,7 +461,7 @@ function RallyPage() {
         >
           {storageNotice}
           <div className="dialog-ghost stamp-pop">
-            <GhostImage ghost={earned.ghost} />
+            <GhostImage ghost={earned.ghost} variant="stamp" />
           </div>
           <p className="speech">
             {isSurveyId(earned.ghost.id)
@@ -538,7 +538,7 @@ function StatusRow({
       }
     >
       <div className="stamp-art">
-        <GhostImage ghost={ghost} />
+        <GhostImage ghost={ghost} variant="stamp" concealed={!done} />
       </div>
       <div className="stamp-meta">
         <strong>NO.{String(number).padStart(3, "0")}</strong>

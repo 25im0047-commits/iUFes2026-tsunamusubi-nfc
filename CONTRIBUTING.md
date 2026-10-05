@@ -9,7 +9,7 @@ npm ci
 npm run dev
 ```
 
-`http://localhost:3001`を開きます。PRを作成する前に次を実行してください。
+`http://localhost:3001`を開きます。ローカル検証後、承認済みの作業ブランチへcommit・pushします。最終SHAの必須CIが成功し、最終レビューで問題がないことを確認してから、PRをreadyにしてmainへmergeします。手動デプロイやVercelの権限変更は行いません。タイトル・会話は通常絵、取得演出・獲得済み図鑑はスタンプ絵、未発見は仮表示であることを確認します。黒猫の色対応は仮割当です。次のチェックで本日の結果を確認し、10月4日の実績と区別して記録します。
 
 ```bash
 npm run typecheck
@@ -68,8 +68,11 @@ npm run test:deployment
 | `src/lib/survey.ts` | 質問・選択肢・任意回答と文字数の検証 |
 | `src/lib/nfc.ts` | NFC URLのID読み取りとURL整理 |
 | `src/routes/index.tsx` | タイトルから景品受け取り場所の提示までの画面遷移、晴雨Mapの切り替え、進捗更新、保存警告 |
+| `src/lib/artwork.ts` | 通常・スタンプPNGの参照と、アルファ外接矩形＋8pxのSVG表示範囲。PNG原本は保持 |
 | `src/components/GhostDialog.tsx` | 会話、アンケート、ネイティブdialogによるフォーカス管理 |
 | `src/styles.css` | 画面スタイル |
+| `public/ghosts/characters/*.png` | 通常絵の原本11枚。会話・タイトル・解放用 |
+| `public/ghosts/stamps/*.png` | スタンプ絵の原本11枚。取得演出・獲得済み図鑑用 |
 | `tests/*.test.mjs` | 保存障害・不正データ・重複取得・URLの回帰テスト |
 | `tests/browser/rally.spec.ts` | モーダルの表示・キーボード操作・参加者フローのブラウザーテスト |
 | `tests/browser/responsive.spec.ts` | 7サイズの画面遷移・はみ出し・画像サイズ・小画面入力の検証 |

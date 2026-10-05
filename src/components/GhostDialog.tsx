@@ -1,6 +1,12 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { Ghost } from "../lib/rally";
 import {
+  ARTWORK_WIDTH,
+  ARTWORK_HEIGHT,
+  getGhostArtwork,
+  type ArtworkVariant,
+} from "../lib/artwork";
+import {
   isSurveyId,
   MAX_TEXT_LENGTH,
   surveys,
@@ -61,8 +67,29 @@ export function Dialog({
   );
 }
 
-export function GhostImage({ ghost }: { ghost: Ghost }) {
-  if (ghost.imageSrc) return <img src={ghost.imageSrc} alt="" />;
+export function GhostImage({
+  ghost,
+  variant = "character",
+  concealed = false,
+}: {
+  ghost: Ghost;
+  variant?: ArtworkVariant;
+  concealed?: boolean;
+}) {
+  const artwork = concealed ? undefined : getGhostArtwork(ghost.id, variant);
+  if (artwork)
+    return (
+      <svg
+        className="ghost-artwork"
+        viewBox={artwork.viewBox}
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <image href={artwork.src} width={ARTWORK_WIDTH} height={ARTWORK_HEIGHT} />
+      </svg>
+    );
+  if (!concealed && ghost.imageSrc) return <img src={ghost.imageSrc} alt="" />;
   return (
     <span className={`ghost-placeholder ${ghost.type}`} aria-hidden="true">
       <i />

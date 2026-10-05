@@ -11,7 +11,7 @@ export type GhostType = "good" | "bad";
 export type Ghost = {
   id: string;
   type: GhostType;
-  /** 本番素材を public/ に置いたら、例: /ghosts/good-01.webp を指定する。 */
+  /** 未登録キャラの画像フォールバック。確定11体の素材は artwork.ts で管理する。 */
   imageSrc?: string;
   name: string;
   location: string;
