@@ -2,6 +2,8 @@
 
 ## 2026-10-05
 
+- [CVE-2026-102989 / GHSA-qx66-fv34-fjm8](https://github.com/TanStack/router/security/advisories/GHSA-qx66-fv34-fjm8)対応：TanStack Startを1.168.49から修正版1.168.60へ固定し、server coreを1.169.31から1.169.39へ更新。npm監査0件に加えて公式告知・lock・実依存を照合。型・単体38件・Vercel用ビルド/配信3件が成功。Vercel失敗ログは権限不足で未確認。詳細は[セキュリティ更新記録](docs/security-20261005.md)。
+
 - 10:58 JSTの狩俣ひよりさんによる[画像納品](https://iu-people.slack.com/archives/C0BPYFKPZFA/p1791165519921949)を反映。通常絵11枚・スタンプ絵11枚（354 × 472pxの透明RGBA PNG原本）を `public/ghosts/characters` と `public/ghosts/stamps` に追加。
 - 会話・タイトル・解放は通常絵、取得演出・獲得済み図鑑はスタンプ絵を使用。未発見の仮表示を維持。
 - PNG原本を保持し、`src/lib/artwork.ts` のアルファ外接矩形＋8pxのSVG `viewBox` で表示範囲を調整。通常絵とスタンプ絵の透明余白による表示サイズの違いを抑える。
