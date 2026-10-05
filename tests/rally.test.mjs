@@ -3,7 +3,9 @@ import { test } from "node:test";
 import {
   STORAGE_KEY,
   LEGACY_STORAGE_KEY,
+  PREVIOUS_STORAGE_KEY,
   goodGhosts,
+  badGhosts,
   emptyProgress,
   normalizeProgress,
   recordGoodConversation,
@@ -38,6 +40,161 @@ function unlocked() {
     emptyProgress(),
   );
 }
+
+test("confirmed roster includes nine good ghosts and the two survey ghosts", () => {
+  assert.deepEqual(
+    goodGhosts.map(({ id, name }) => ({ id, name })),
+    [
+      { id: "good-01", name: "黒猫（A）" },
+      { id: "good-02", name: "黒猫（B）" },
+      { id: "good-03", name: "蜘蛛" },
+      { id: "good-04", name: "フランケン" },
+      { id: "good-05", name: "魔女" },
+      { id: "good-06", name: "ミイラ" },
+      { id: "good-07", name: "死神" },
+      { id: "good-08", name: "ガイコツ" },
+      { id: "good-09", name: "人魚" },
+    ],
+  );
+  assert.deepEqual(badGhosts.map(({ id }) => id), ["bad-01", "bad-02"]);
+});
+
+test("five-ghost v2 completions retain answers while the four new stamps remain required", () => {
+  const legacy = JSON.stringify({
+    schemaVersion: 2,
+    hasStarted: true,
+    goodStampIds: ["good-01", "good-02", "good-03", "good-04", "good-05"],
+    surveyResponses: {
+      "bad-01": {
+        version: 1,
+        answers: { visitor: ["親子"], recommendation: "0" },
+      },
+      "bad-02": {
+        version: 1,
+        answers: { favorite: "工作", return: "行きたい！" },
+      },
+    },
+  });
+  const storage = memoryStorage(null, legacy);
+  const loaded = loadProgress(storage);
+  assert.equal(loaded.status, "migrated");
+  assert.deepEqual(loaded.progress.badStampIds, ["bad-01", "bad-02"]);
+  assert.deepEqual(loaded.progress.surveyResponses["bad-01"].answers.visitor, ["family"]);
+  assert.equal(loaded.progress.surveyResponses["bad-01"].answers.recommendation, "0");
+  assert.equal(loaded.progress.surveyResponses["bad-02"].answers.favorite, "工作");
+  assert.equal(hasAllGoodStamps(loaded.progress), false);
+  assert.equal(canOpenGhost(loaded.progress, "bad-01"), false);
+  assert.equal(canOpenGhost(loaded.progress, "bad-02"), false);
+  assert.equal(isRallyComplete(loaded.progress), false);
+  assert.equal(saveProgress(loaded.progress, storage).ok, true);
+  assert.equal(storage.getItem(LEGACY_STORAGE_KEY), legacy);
+  let progress = loadProgress(storage).progress;
+  for (const ghost of goodGhosts.slice(5)) {
+    progress = recordGoodConversation(progress, ghost.id);
+  }
+  assert.equal(isRallyComplete(progress), true);
+  assert.deepEqual(progress.surveyResponses, loaded.progress.surveyResponses);
+});
+
+test("five-ghost v3 completions retain earned bad stamps and responses until the expanded rally completes", () => {
+  let completed = completeBadConversation(unlocked(), "bad-01", {
+    recommendation: "10",
+  }).progress;
+  completed = completeBadConversation(completed, "bad-02", {
+    favorite: "体験",
+  }).progress;
+  completed.goodStampIds = ["good-01", "good-02", "good-03", "good-04", "good-05"];
+  const loaded = loadProgress(memoryStorage(JSON.stringify(completed)));
+  assert.equal(loaded.status, "loaded");
+  assert.deepEqual(loaded.progress.badStampIds, completed.badStampIds);
+  assert.deepEqual(loaded.progress.surveyResponses, completed.surveyResponses);
+  assert.equal(hasAllGoodStamps(loaded.progress), false);
+  assert.equal(isRallyComplete(loaded.progress), false);
+  const expanded = goodGhosts.slice(5).reduce(
+    (progress, ghost) => recordGoodConversation(progress, ghost.id),
+    loaded.progress,
+  );
+  assert.equal(isRallyComplete(expanded), true);
+  assert.deepEqual(expanded.badStampIds, completed.badStampIds);
+  assert.deepEqual(expanded.surveyResponses, completed.surveyResponses);
+});
+
+test("previous v3 progress migrates to an isolated key and survives an old five-ghost client save", () => {
+  assert.equal(PREVIOUS_STORAGE_KEY, `${LEGACY_STORAGE_KEY}-v3`);
+  assert.equal(STORAGE_KEY, `${LEGACY_STORAGE_KEY}-v3-confirmed-20261004`);
+  let previous = completeBadConversation(unlocked(), "bad-01", {
+    recommendation: "0",
+  }).progress;
+  previous = completeBadConversation(previous, "bad-02", {
+    favorite: "前の版で答えた感想",
+  }).progress;
+  previous.goodStampIds = ["good-01", "good-02", "good-03", "good-04", "good-05"];
+  const previousRaw = JSON.stringify(previous);
+  const legacyRaw = JSON.stringify({ goodStampIds: ["good-01"] });
+  const values = new Map([
+    [PREVIOUS_STORAGE_KEY, previousRaw],
+    [LEGACY_STORAGE_KEY, legacyRaw],
+  ]);
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  };
+  const loaded = loadProgress(storage);
+  assert.equal(loaded.status, "migrated");
+  assert.deepEqual(loaded.progress, previous);
+  assert.equal(storage.getItem(STORAGE_KEY), null);
+  assert.equal(saveProgress(loaded.progress, storage).ok, true);
+  assert.equal(storage.getItem(PREVIOUS_STORAGE_KEY), previousRaw);
+  assert.equal(storage.getItem(LEGACY_STORAGE_KEY), legacyRaw);
+  assert.deepEqual(loadProgress(storage), { progress: previous, status: "loaded" });
+
+  const expanded = goodGhosts.slice(5).reduce(
+    (progress, ghost) => recordGoodConversation(progress, ghost.id),
+    loaded.progress,
+  );
+  const saved = saveProgress(expanded, storage);
+  assert.equal(saved.ok, true);
+  assert.equal(isRallyComplete(saved.progress), true);
+  const confirmedRaw = storage.getItem(STORAGE_KEY);
+  // The already-open prototype only knows five IDs and still writes its own key.
+  storage.setItem(PREVIOUS_STORAGE_KEY, JSON.stringify({
+    ...emptyProgress(),
+    hasStarted: true,
+    goodStampIds: ["good-01", "good-02", "good-03", "good-04", "good-05"],
+  }));
+  assert.equal(storage.getItem(STORAGE_KEY), confirmedRaw);
+  assert.deepEqual(loadProgress(storage), { progress: saved.progress, status: "loaded" });
+  assert.equal(loadProgress(storage).progress.goodStampIds.length, 9);
+  assert.deepEqual(loadProgress(storage).progress.surveyResponses, previous.surveyResponses);
+});
+
+test("unsupported previous v3 data blocks migration writes when the new key is absent", () => {
+  for (const previous of [
+    { ...unlocked(), schemaVersion: 99 },
+    { ...unlocked(), surveyResponses: { "bad-01": { version: 99, answers: {} } } },
+  ]) {
+    const previousRaw = JSON.stringify(previous);
+    const legacyRaw = JSON.stringify({ goodStampIds: ["good-01"] });
+    const values = new Map([
+      [PREVIOUS_STORAGE_KEY, previousRaw],
+      [LEGACY_STORAGE_KEY, legacyRaw],
+    ]);
+    const storage = {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+    };
+    assert.equal(loadProgress(storage).status, "unsupported");
+    const pending = recordGoodConversation(emptyProgress(), "good-02");
+    assert.deepEqual(saveProgress(pending, storage), {
+      ok: false,
+      reason: "unsupported",
+      progress: pending,
+    });
+    assert.equal(storage.getItem(STORAGE_KEY), null);
+    assert.equal(storage.getItem(PREVIOUS_STORAGE_KEY), previousRaw);
+    assert.equal(storage.getItem(LEGACY_STORAGE_KEY), legacyRaw);
+  }
+});
 
 test("current progress round-trips and an empty browser starts at the title", () => {
   const progress = recordGoodConversation(emptyProgress(), "good-01");

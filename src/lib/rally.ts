@@ -11,12 +11,11 @@ export type GhostType = "good" | "bad";
 export type Ghost = {
   id: string;
   type: GhostType;
-  /** 本番素材を public/ に置いたら、例: /ghosts/good-01.webp を指定する。 */
+  /** 未登録キャラの画像フォールバック。確定11体の素材は artwork.ts で管理する。 */
   imageSrc?: string;
   name: string;
   location: string;
   area: string;
-  position: { top: string; left: string };
   message: string;
   detail: string;
 };
@@ -31,66 +30,106 @@ export type Progress = {
 
 // Isolate new data from already-open, pre-migration clients that cannot reject it.
 export const LEGACY_STORAGE_KEY = "iufes2026-system-prototype-progress";
-export const STORAGE_KEY = `${LEGACY_STORAGE_KEY}-v3`;
+export const PREVIOUS_STORAGE_KEY = `${LEGACY_STORAGE_KEY}-v3`;
+export const STORAGE_KEY = `${LEGACY_STORAGE_KEY}-v3-confirmed-20261004`;
+
+// The original five-character prototype also allowed completed v2 surveys.
+const LEGACY_V2_GOOD_IDS = [
+  "good-01",
+  "good-02",
+  "good-03",
+  "good-04",
+  "good-05",
+];
 
 export const ghosts: Ghost[] = [
   {
     id: "good-01",
     type: "good",
-    name: "良いおばけ 01",
-    location: "1-1",
-    area: "1F",
-    position: { top: "32%", left: "24%" },
-    message: "この出店では、来場者参加型の企画を楽しめるよ。",
-    detail: "会場を歩きながら、気になった企画にも遊びに行ってみてね。",
+    name: "黒猫（A）",
+    location: "受付（駐輪場付近）",
+    area: "屋外",
+    message: "ニャニャッ！おばけの街へようこそ！\niUFesを最後までたっぷり楽しんでいってニャ〜！",
+    detail: "会話を終えるとスタンプがつくよ。",
   },
   {
     id: "good-02",
     type: "good",
-    name: "良いおばけ 02",
-    location: "模擬店エリア",
-    area: "1F",
-    position: { top: "59%", left: "45%" },
-    message: "おいしい匂いがするね。学園祭ならではの出店だよ。",
-    detail: "出店の内容を楽しみながら、次のおばけを探そう。",
+    name: "黒猫（B）",
+    location: "受付（iUグラウンド側の外扉付近）",
+    area: "屋外",
+    message: "ニャ〜ん！\n迷子になったら受付に来るニャ！\n思い出をいっぱい作っていってニャ〜！",
+    detail: "会話を終えるとスタンプがつくよ。",
   },
   {
     id: "good-03",
     type: "good",
-    name: "良いおばけ 03",
-    location: "音楽室",
-    area: "2F",
-    position: { top: "25%", left: "70%" },
-    message: "こんちわ",
-    detail: "室内企画を中心に、いろいろな催しをめぐってみよう。",
+    name: "蜘蛛",
+    location: "サロン前",
+    area: "1F",
+    message: "シュー！\n革や紙でカッコいいグッズ作ったんだぁ君もものづくりしてみな！",
+    detail: "会話を終えるとスタンプがつくよ。",
   },
   {
     id: "good-04",
     type: "good",
-    name: "良いおばけ 04",
-    location: "ものづくり教室",
-    area: "2F",
-    position: { top: "72%", left: "74%" },
-    message: "自分で作って遊べる企画も見つけたよ。",
-    detail: "気配の場所へ向かい、NFCタグを探してみてね。",
+    name: "フランケン",
+    location: "食堂外側（奥の壁寄り）",
+    area: "屋外",
+    message: "ウオォ〜！\n外でうまいごはんいっぱい食べたぞ！\n君もお腹すかせてもりもり食べな！",
+    detail: "会話を終えるとスタンプがつくよ。",
   },
   {
     id: "good-05",
     type: "good",
-    name: "良いおばけ 05",
-    location: "図書室企画",
+    name: "魔女",
+    location: "2-1横の壁",
+    area: "2F",
+    message: "イヒヒ…魔法の粉を混ぜてシュワシュワのバスボム作ったぞ！君も魔法の実験やってみな！",
+    detail: "会話を終えるとスタンプがつくよ。",
+  },
+  {
+    id: "good-06",
+    type: "good",
+    name: "ミイラ",
+    location: "iU HUB内",
+    area: "2F",
+    message: "大きな紙にカッコいい文字書けたぞ！\n君も筆で書いてみて！\n,,,って僕の包帯には書かないで〜！",
+    detail: "会話を終えるとスタンプがつくよ。",
+  },
+  {
+    id: "good-07",
+    type: "good",
+    name: "死神",
+    location: "学生部屋3（3-5）",
     area: "3F",
-    position: { top: "18%", left: "43%" },
-    message: "静かな場所にも、学園祭の企画があるみたい。",
-    detail: "良いおばけのスタンプを集めると、新しい気配が現れるよ。",
+    message: "ヒヒ…ハムスターに未来を占ってもらったぞ！\n君も自分の運命をたしかめてみな",
+    detail: "会話を終えるとスタンプがつくよ。",
+  },
+  {
+    id: "good-08",
+    type: "good",
+    name: "ガイコツ",
+    location: "3-8前",
+    area: "3F",
+    message: "カタカタ…大迫力のプラモ見てきたぞ！\n骨もしびれるカッコよさだから君も見にいってみな！",
+    detail: "会話を終えるとスタンプがつくよ。",
+  },
+  {
+    id: "good-09",
+    type: "good",
+    name: "人魚",
+    location: "3-10前の給湯室",
+    area: "3F",
+    message: "スイスイ〜3階には楽しい体験がたくさん！\nキミもお気に入りを見つけてね♪",
+    detail: "会話を終えるとスタンプがつくよ。",
   },
   {
     id: "bad-01",
     type: "bad",
     name: "メデューサ",
-    location: "屋内・設置場所調整中",
-    area: "屋内",
-    position: { top: "86%", left: "14%" },
+    location: "大きな木の付近（セブンイレブン側から見た位置）",
+    area: "屋外",
     message:
       "私は 見つめあうと 人をイシ（石）にしちゃうから、お祭りに入れなくて さみしいの…うぅ、あなたは どこから来たのか、私に教えてくれないかしら…？",
     detail: "こたえられる しつもんだけで だいじょうぶだよ。",
@@ -99,11 +138,10 @@ export const ghosts: Ghost[] = [
     id: "bad-02",
     type: "bad",
     name: "ヴァンパイア",
-    location: "屋内・設置場所調整中",
-    area: "屋内",
-    position: { top: "86%", left: "86%" },
+    location: "屋外倉庫（千葉大学側から見た位置）",
+    area: "屋外",
     message:
-      "フフフ…ワタシは コウモリを使って ていさつにきた ヴァンパイアだ！このお祭りの『ひみつ』を教えてくれたら、仲よくなってあげても いいぞ…！",
+      "フフフ…ワタシは コウモリを使って ていさつにきた ヴァンパイアだ！ \nこのお祭りの『ひみつ』を 教えてくれたら、仲よくなってあげても いいぞ…！",
     detail: "書きたいことだけ 教えてね。空らんでも なかよくなれるよ。",
   },
 ];
@@ -160,7 +198,9 @@ export function normalizeProgress(value: unknown): Progress {
   }
   if (
     (data.schemaVersion === 3 ||
-      (data.schemaVersion === 2 && allGoodIdsPresent(next.goodStampIds))) &&
+      (data.schemaVersion === 2 &&
+        (allGoodIdsPresent(next.goodStampIds) ||
+          LEGACY_V2_GOOD_IDS.every((id) => next.goodStampIds.includes(id))))) &&
     data.surveyResponses &&
     typeof data.surveyResponses === "object"
   ) {
@@ -332,6 +372,13 @@ function decodeProgress(raw: string | null): ProgressLoadResult {
 function readStoredProgress(storage: ProgressStorage): ProgressLoadResult {
   const current = storage.getItem(STORAGE_KEY);
   if (current !== null) return decodeProgress(current);
+  const previous = storage.getItem(PREVIOUS_STORAGE_KEY);
+  if (previous !== null) {
+    const loaded = decodeProgress(previous);
+    return loaded.status === "loaded"
+      ? { ...loaded, status: "migrated" }
+      : loaded;
+  }
   const legacy = decodeProgress(storage.getItem(LEGACY_STORAGE_KEY));
   return legacy.status === "loaded"
     ? { ...legacy, status: "migrated" }

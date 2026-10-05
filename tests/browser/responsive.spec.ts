@@ -57,7 +57,7 @@ for (const viewport of [
     await page.evaluate(({ key, progress }) => localStorage.setItem(key, JSON.stringify(progress)), {
       key: STORAGE_KEY, progress: { ...emptyProgress(), hasStarted: true, goodStampIds: goodGhosts.slice(0, -1).map(g => g.id) },
     });
-    await page.goto('/?id=good-05');
+    await page.goto(`/?id=${goodGhosts.at(-1)!.id}`);
     await expect(page.getByRole('dialog')).toBeVisible();
     await expectLayout(page);
     await page.getByRole('button', { name: '会話を終えてスタンプを獲得' }).click();
@@ -85,9 +85,9 @@ for (const viewport of [
       await page.getByRole('button', { name: id === 'bad-01' ? 'マップにもどる' : 'コンプリート画面へ！', exact: true }).click();
     }
     await expectLayout(page);
-    await page.getByRole('button', { name: 'うけつけで プレゼントをもらう' }).click();
+    await page.getByRole('button', { name: '景品受け取り場所で プレゼントをもらう' }).click();
     await expectLayout(page);
-    await page.screenshot({ path: testInfo.outputPath('reception.png'), fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath('prize.png'), fullPage: true });
     expect(errors).toEqual([]);
   });
 }

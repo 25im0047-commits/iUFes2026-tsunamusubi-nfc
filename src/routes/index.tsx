@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Dialog, GhostDialog, GhostImage } from "../components/GhostDialog";
 import { readNfcUrl } from "../lib/nfc";
+import { VenueMap } from "../components/VenueMap";
+import { getGhostPlacement, prizeLocation, type WeatherMode } from "../lib/venue";
 import {
   badGhosts,
   canOpenGhost,
@@ -15,6 +17,7 @@ import {
   loadProgress,
   mergeProgress,
   STORAGE_KEY,
+  PREVIOUS_STORAGE_KEY,
   LEGACY_STORAGE_KEY,
   recordGoodConversation,
   saveProgress,
@@ -24,10 +27,11 @@ import {
 import { isSurveyId, surveys, type SurveyAnswers } from "../lib/survey";
 
 export const Route = createFileRoute("/")({ component: RallyPage });
-type Screen = "title" | "help" | "map" | "unlock" | "ending" | "reception";
+type Screen = "title" | "help" | "map" | "unlock" | "ending" | "prize";
 type StorageIssue =
   "unavailable" | "repaired" | "migrated" | "unsaved" | "unsupported" | null;
 const emptyDraft: SurveyAnswers = {};
+const WEATHER_STORAGE_KEY = "iufes2026-system-prototype-weather";
 
 function RallyPage() {
   const [progress, setProgress] = useState<Progress>(emptyProgress);
@@ -35,6 +39,7 @@ function RallyPage() {
   const initialized = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [ready, setReady] = useState(false);
+  const [weather, setWeather] = useState<WeatherMode>("sunny");
   const [screen, setScreen] = useState<Screen>("title");
   const focusedScreen = useRef<Screen | null>(null);
   const [activeGhostId, setActiveGhostId] = useState<string | null>(null);
@@ -47,8 +52,25 @@ function RallyPage() {
   const [storageIssue, setStorageIssue] = useState<StorageIssue>(null);
   const goodComplete = hasAllGoodStamps(progress);
   const complete = isRallyComplete(progress);
-  const activeGhost = getGhost(activeGhostId);
+  const foundGhost = getGhost(activeGhostId);
+  const activeGhost = foundGhost ? ghostForWeather(foundGhost) : undefined;
   const earnedNextScreen = complete ? "ending" : earned?.nextScreen;
+
+  function ghostForWeather(ghost: Ghost): Ghost {
+    const placement = getGhostPlacement(ghost.id, weather);
+    return placement
+      ? { ...ghost, area: placement.floor, location: placement.location }
+      : ghost;
+  }
+
+  function changeWeather(next: WeatherMode) {
+    setWeather(next);
+    try {
+      window.localStorage.setItem(WEATHER_STORAGE_KEY, next);
+    } catch {
+      // The selected map remains usable when storage is unavailable.
+    }
+  }
 
   function persistProgress(next: Progress) {
     const result = saveProgress(next);
@@ -67,6 +89,12 @@ function RallyPage() {
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
+    try {
+      if (window.localStorage.getItem(WEATHER_STORAGE_KEY) === "rainy")
+        setWeather("rainy");
+    } catch {
+      // Default to the sunny map when storage is unavailable.
+    }
     const loaded = loadProgress();
     const saved = loaded.progress;
     progressRef.current = saved;
@@ -128,7 +156,7 @@ function RallyPage() {
         // Sync only causes navigation when progress crosses a boundary.
         // Refocusing an unchanged page must preserve the screen chosen by the user.
         if (becameComplete)
-          return previous === "reception" ? previous : "ending";
+          return previous === "prize" ? previous : "ending";
         if (becameStarted && (previous === "title" || previous === "help"))
           return "map";
         return previous;
@@ -137,6 +165,7 @@ function RallyPage() {
     function onStorage(event: StorageEvent) {
       if (
         event.key === STORAGE_KEY ||
+        event.key === PREVIOUS_STORAGE_KEY ||
         event.key === LEGACY_STORAGE_KEY ||
         event.key === null
       )
@@ -217,7 +246,7 @@ function RallyPage() {
       }
     />
   ) : null;
-  const markers = [...goodGhosts, ...(goodComplete ? badGhosts : [])];
+  const markers = [...goodGhosts, ...(goodComplete ? badGhosts : [])].map(ghostForWeather);
   const heading = (text: string) => (
     <h1 ref={headingRef} tabIndex={-1}>
       {text}
@@ -320,42 +349,13 @@ function RallyPage() {
                 : "会話を終えると スタンプがつくよ。"}
             </p>
           </section>
-          <section className="panel map-panel">
-            <div className="panel-title">
-              <h2>会場マップ</h2>
-              <span>仮の会場図</span>
-            </div>
-            <div className="map">
-              <div className="road road-a" />
-              <div className="road road-b" />
-              <div className="building main-building">
-                本館
-                <br />
-                <small>1F / 2F / 3F</small>
-              </div>
-              <div className="building side-building">体育館</div>
-              <div className="building yard-building">中庭</div>
-              {markers.map((ghost) => {
-                const done = isGhostComplete(progress, ghost.id);
-                return (
-                  <div
-                    className={`marker ${ghost.type} ${done ? "done" : ""}`}
-                    key={ghost.id}
-                    style={ghost.position}
-                    title={`${ghost.name} / ${ghost.location}`}
-                  >
-                    <span>{done ? "✓" : "!"}</span>
-                    <small>{done ? "済" : ghost.area}</small>
-                  </div>
-                );
-              })}
-              <span className="map-label gate">正門</span>
-              <span className="map-label west">西門</span>
-            </div>
-            <p className="map-help">
-              場所は仮表示です。会話は現地のタグにタッチすると始まります。
-            </p>
-          </section>
+          <VenueMap
+            ghosts={markers}
+            progress={progress}
+            weather={weather}
+            onWeatherChange={changeWeather}
+            showPrize={complete}
+          />
           <section className="panel list-panel">
             <div className="stamp-heading">
               <div>
@@ -390,7 +390,7 @@ function RallyPage() {
                 </strong>
                 <span>
                   {complete
-                    ? "受付でコンプリート画面をみせてね。"
+                    ? "景品受け取り場所でコンプリート画面をみせてね。"
                     : "会話を終えると、それぞれスタンプがもらえるよ。"}
                 </span>
                 {complete && (
@@ -407,29 +407,30 @@ function RallyPage() {
         </>
       )}
 
-      {(screen === "ending" || screen === "reception") && complete && (
+      {(screen === "ending" || screen === "prize") && complete && (
         <section className="flow-panel ending-panel">
           <p className="label">コンプリート！</p>
           {heading(
             screen === "ending"
               ? "全部のおばけと なかよくなれたよ！"
-              : "この画面を 受付でみせてね！",
+              : "景品受け取り場所に 行って、この画面を みせてね！",
           )}
           <div className="completion-seal" aria-hidden="true">
             ✦
           </div>
           <p>
             {screen === "ending"
-              ? "コンプリート おめでとう！うけつけに行って、この画面をみせてね！"
-              : "プレゼントは受付の人から受け取ってね。"}
+              ? "コンプリート おめでとう！景品受け取り場所に 行って、この画面を みせてね！"
+              : "プレゼントは景品受け取り場所の人から受け取ってね。"}
           </p>
+          <p className="prize-location">景品受け取り場所：{prizeLocation.location}</p>
           <p>
             いいおばけ {goodGhosts.length} / {goodGhosts.length} ・
             あやしいおばけ {badGhosts.length} / {badGhosts.length}
           </p>
           {screen === "ending" && (
-            <button className="action" onClick={() => setScreen("reception")}>
-              うけつけで プレゼントをもらう
+            <button className="action" onClick={() => setScreen("prize")}>
+              景品受け取り場所で プレゼントをもらう
             </button>
           )}
           <button className="text-button" onClick={() => setScreen("map")}>
@@ -460,7 +461,7 @@ function RallyPage() {
         >
           {storageNotice}
           <div className="dialog-ghost stamp-pop">
-            <GhostImage ghost={earned.ghost} />
+            <GhostImage ghost={earned.ghost} variant="stamp" />
           </div>
           <p className="speech">
             {isSurveyId(earned.ghost.id)
@@ -537,7 +538,7 @@ function StatusRow({
       }
     >
       <div className="stamp-art">
-        <GhostImage ghost={ghost} />
+        <GhostImage ghost={ghost} variant="stamp" concealed={!done} />
       </div>
       <div className="stamp-meta">
         <strong>NO.{String(number).padStart(3, "0")}</strong>
