@@ -69,3 +69,4 @@ PRとmainへのpushでは、GitHub ActionsでWindows/Linux、Node.js 22.12.0/24�
 
 設定の根拠：[Vercel公式のTanStack Startデプロイ手順](https://vercel.com/kb/guide/deploy-a-tanstack-start-app-to-vercel)。ローカルでの本番ビルド・配信確認は[開発手順](CONTRIBUTING.md)を参照してください。
 
+ 
