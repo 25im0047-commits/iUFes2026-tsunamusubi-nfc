@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { PartyBurst } from "./PartyEffects";
 
 const colors = ["#FFE27A", "#7DF0C9", "#fff", "#FF9BCB", "#FF8A2B"];
 const sparks = Array.from({ length: 30 }, (_, i) => {
@@ -38,6 +39,7 @@ export function FoundStage({ children }: { children: ReactNode }) {
   return <div className="found-stage">
     <div className="found-backdrop" aria-hidden="true" />
     <FoundEffects />
+    <PartyBurst />
     <div className="found-world"><div className="found-content">{children}</div></div>
   </div>;
 }

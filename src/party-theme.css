@@ -124,3 +124,32 @@ body.party-theme { isolation: isolate; color: #fff; background: linear-gradient(
   .party-confetti, .party-mascot, .party-flash, .party-edge, .party-halo { display: none; }
   .party-theme .action::before, .party-theme .action::after { display: none; }
 }
+
+/* ===== Dopamine boost: orbs, ticker, earned-stamp burst ===== */
+.party-orbs { position: absolute; inset: 0; overflow: hidden; mix-blend-mode: screen; }
+.party-orbs i { position: absolute; bottom: -60px; border-radius: 50%; opacity: 0; filter: blur(2px); animation: party-orb var(--orb-time) ease-in var(--orb-delay) infinite; }
+@keyframes party-orb { 0% { transform: translateY(0) scale(.6); opacity: 0; } 30% { opacity: .7; } 100% { transform: translateY(-110vh) scale(1.2); opacity: 0; } }
+.party-ticker { position: relative; z-index: 1; height: 34px; margin: 14px -24px 6px; overflow: hidden; color: #fff; background: #ff4f9a; box-shadow: 0 6px 18px #ff4f9a66; font-size: 15px; font-weight: 900; letter-spacing: .1em; line-height: 34px; transform: rotate(-1.5deg); }
+.party-ticker span { display: inline-block; white-space: nowrap; animation: party-marquee calc(13s - var(--map-intensity, .3) * 7s) linear infinite; }
+@keyframes party-marquee { to { transform: translateX(-50%); } }
+
+.party-burst { position: absolute; inset: 0; z-index: 2; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.party-burst > i { position: absolute; left: 50%; top: 32%; border-radius: 50%; }
+.pb-dot { width: var(--s); height: var(--s); margin: calc(var(--s) / -2); background: var(--c); box-shadow: 0 0 14px 4px var(--c); opacity: 0; animation: pb-fly 1.1s ease-out var(--d) 3 both; }
+.pb-ring { width: 200px; height: 200px; margin: -100px; border: 3px solid #fff; opacity: 0; animation: pb-shock 1.5s ease-out var(--d) 2 both; }
+.party-burst > .pb-flash { inset: 0; left: 0; top: 0; width: 100%; height: 100%; margin: 0; border-radius: 0; background: #fff; opacity: 0; animation: pb-flash .45s ease-out 1; }
+@keyframes pb-fly { 0% { transform: translate(0, 0) scale(0); opacity: 1; } 100% { transform: translate(var(--x), var(--y)) scale(1.2); opacity: 0; } }
+@keyframes pb-shock { 0% { transform: scale(.4); opacity: .9; } 100% { transform: scale(2.8); opacity: 0; } }
+@keyframes pb-flash { 0% { opacity: .5; } 100% { opacity: 0; } }
+@keyframes pb-shake { 0%,100% { transform: translate(0); } 8% { transform: translate(-9px, 6px); } 16% { transform: translate(8px, -7px); } 24% { transform: translate(-7px, -4px); } 32% { transform: translate(6px, 6px); } 44% { transform: translate(-4px, 3px); } 60% { transform: translate(2px, -2px); } }
+@keyframes pb-pop { 0% { transform: scale(0) rotate(-8deg); } 60% { transform: scale(1.25) rotate(-4deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes pb-stamp { 0% { transform: scale(4) rotate(-14deg); opacity: 0; } 55% { transform: scale(.85) rotate(-14deg); opacity: 1; } 75% { transform: scale(1.2) rotate(-14deg); } 100% { transform: scale(1) rotate(-14deg); opacity: 1; } }
+@keyframes pb-beat { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.party-theme dialog.dialog.earned-dialog { animation: pb-shake .6s ease-out 1; }
+.earned-dialog .friendship-wordmark { animation: pb-pop .7s cubic-bezier(.3, 1.6, .5, 1) both, pb-beat .45s ease-in-out .8s infinite; }
+.earned-dialog .friendship-plus { animation: pb-stamp .8s .45s both; }
+.earned-dialog .friendship-dots i.filled:last-child { animation: pb-beat .5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .party-burst, .party-orbs { display: none; }
+  .party-ticker span { animation: none; }
+}

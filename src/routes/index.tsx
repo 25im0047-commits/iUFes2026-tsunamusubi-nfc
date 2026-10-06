@@ -4,7 +4,7 @@ import { Dialog, GhostDialog, GhostImage } from "../components/GhostDialog";
 import { readNfcUrl } from "../lib/nfc";
 import { VenueMap } from "../components/VenueMap";
 import { RallyTitle } from "../components/RallyTitle";
-import { PartyEffects, PartyWords } from "../components/PartyEffects";
+import { PartyEffects, PartyTicker, PartyWords } from "../components/PartyEffects";
 import { FoundOrbit } from "../components/FoundEffects";
 import { getGhostPlacement, prizeLocation, type WeatherMode } from "../lib/venue";
 import {
@@ -269,6 +269,7 @@ function RallyPage() {
     <main className={`page flow-${screen}`} style={{ "--map-intensity": (progress.goodStampIds.length + progress.badStampIds.length) / (goodGhosts.length + badGhosts.length) } as CSSProperties}>
       <PartyEffects intensity={screen === "map" ? (progress.goodStampIds.length + progress.badStampIds.length) / (goodGhosts.length + badGhosts.length) : 1} />
       {!activeGhost && !earned && storageNotice}
+      {screen === "map" && <PartyTicker />}
       {screen === "title" && (
         <RallyTitle headingRef={headingRef} onStart={() => setScreen("help")} />
       )}
