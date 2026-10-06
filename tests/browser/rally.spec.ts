@@ -125,6 +125,7 @@ for (const viewport of [
 test("dialog focus starts at its heading and returns to the triggering card", async ({
   page,
   hasTouch,
+  browserName,
 }) => {
   await seedUnlocked(page);
   await page.reload();
@@ -136,11 +137,14 @@ test("dialog focus starts at its heading and returns to the triggering card", as
   await expect(
     page.getByRole("heading", { name: lastGoodGhost.name, exact: true }),
   ).toBeFocused();
-  await page.keyboard.press("Shift+Tab");
+  // macOS Safari uses Option-Tab to include buttons with its default keyboard
+  // navigation setting; do not change the machine's accessibility preferences.
+  const modifier = browserName === "webkit" && process.platform === "darwin" ? "Alt+" : "";
+  await page.keyboard.press(`${modifier}Shift+Tab`);
   await expect(
     page.getByRole("button", { name: "閉じる", exact: true }),
   ).toBeFocused();
-  await page.keyboard.press("Tab");
+  await page.keyboard.press(`${modifier}Tab`);
   await expect(
     page.getByRole("button", { name: "マップにもどる", exact: true }),
   ).toBeFocused();

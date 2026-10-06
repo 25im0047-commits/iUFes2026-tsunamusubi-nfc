@@ -170,6 +170,12 @@ export function VenueMap({ ghosts, progress, weather, onWeatherChange, showPrize
             <Floorplan floor={floor} />
             {visible.filter(({ placement }) => placement?.position).map(({ ghost, placement, number }) => (
               <div className={`venue-marker ${ghost.type} ${isGhostComplete(progress, ghost.id) ? "done" : ""}`} key={ghost.id} style={placement?.position} role="img" aria-label={`${ghost.name}：${placement?.location}`}>
+                <svg className="venue-marker-ghost" viewBox="0 0 40 48" aria-hidden="true" focusable="false">
+                  <path d="M20 1C9 1 3 9 3 21v24l5.5-4 5.5 4 6-4 6 4 5.5-4 5.5 4V21C37 9 31 1 20 1z" fill="currentColor" />
+                  <ellipse cx="14" cy="21" rx="2.4" ry="3.2" fill="#2b1060" />
+                  <ellipse cx="26" cy="21" rx="2.4" ry="3.2" fill="#2b1060" />
+                  <ellipse cx="20" cy="29" rx="2.6" ry="3.2" fill="#ff5a9e" />
+                </svg>
                 <span>{number}</span>
               </div>
             ))}

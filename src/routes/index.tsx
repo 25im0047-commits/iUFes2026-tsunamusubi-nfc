@@ -4,6 +4,8 @@ import { Dialog, GhostDialog, GhostImage } from "../components/GhostDialog";
 import { readNfcUrl } from "../lib/nfc";
 import { VenueMap } from "../components/VenueMap";
 import { RallyTitle } from "../components/RallyTitle";
+import { RallyRibbon, RallySparkles } from "../components/RallyDecorations";
+import { StampCelebration } from "../components/StampCelebration";
 import { getGhostPlacement, prizeLocation, type WeatherMode } from "../lib/venue";
 import {
   badGhosts,
@@ -314,16 +316,15 @@ function RallyPage() {
       {screen === "map" && (
         <>
           <section className="instruction">
-            <p className="label">iU Fes 2026 ・ おばけマップ</p>
+            <RallySparkles />
+            <p className="label">iUFes2026</p>
+            <p className="map-wordmark" aria-hidden="true">おばけMap</p>
             {heading("おばけのかげを さがそう！")}
-            <p>
-              かげがある場所に行って、おばけの持っているものに
-              スマホをタッチしてね。
-            </p>
             <button className="text-button" onClick={() => setScreen("help")}>
               あそびかたをみる
             </button>
           </section>
+          <RallyRibbon />
           <nav className="map-shortcuts" aria-label="マップとずかん">
             <a href="#venue-heading">会場マップ</a>
             <a href="#ghost-book">おばけずかん</a>
@@ -333,6 +334,13 @@ function RallyPage() {
               {message}
             </p>
           )}
+          <VenueMap
+            ghosts={markers}
+            progress={progress}
+            weather={weather}
+            onWeatherChange={changeWeather}
+            showPrize={complete}
+          />
           <section className="progress panel">
             <div className="panel-title">
               <h2>いいおばけのスタンプ</h2>
@@ -363,13 +371,6 @@ function RallyPage() {
               ぜんぶで {progress.goodStampIds.length + progress.badStampIds.length} / {goodGhosts.length + badGhosts.length} 体と なかよし！
             </p>
           </section>
-          <VenueMap
-            ghosts={markers}
-            progress={progress}
-            weather={weather}
-            onWeatherChange={changeWeather}
-            showPrize={complete}
-          />
           <section className="panel list-panel">
             <div className="stamp-heading">
               <div>
@@ -474,9 +475,11 @@ function RallyPage() {
           className="earned-dialog"
         >
           {storageNotice}
-          <div className="dialog-ghost stamp-pop">
-            <GhostImage ghost={earned.ghost} variant="stamp" />
-          </div>
+          <StampCelebration
+            ghost={earned.ghost}
+            collected={progress.goodStampIds.length + progress.badStampIds.length}
+            total={goodGhosts.length + badGhosts.length}
+          />
           <p className="speech">
             {isSurveyId(earned.ghost.id)
               ? surveys[earned.ghost.id].thanks
