@@ -52,7 +52,7 @@ export function Dialog({
         onClose();
       }}
     >
-      <PartyEffects contained />
+      <PartyEffects contained spooky={className === "bad"} />
       <button
         className="close"
         type="button"

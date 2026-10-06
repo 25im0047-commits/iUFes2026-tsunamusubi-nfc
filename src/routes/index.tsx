@@ -1,10 +1,10 @@
 import { createFileRoute, useLocation, useRouter } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Dialog, GhostDialog, GhostImage } from "../components/GhostDialog";
 import { readNfcUrl } from "../lib/nfc";
 import { VenueMap } from "../components/VenueMap";
 import { RallyTitle } from "../components/RallyTitle";
-import { PartyWords } from "../components/PartyEffects";
+import { PartyEffects, PartyWords } from "../components/PartyEffects";
 import { getGhostPlacement, prizeLocation, type WeatherMode } from "../lib/venue";
 import {
   badGhosts,
@@ -265,7 +265,8 @@ function RallyPage() {
   );
 
   return (
-    <main className={`page flow-${screen}`}>
+    <main className={`page flow-${screen}`} style={{ "--map-intensity": (progress.goodStampIds.length + progress.badStampIds.length) / (goodGhosts.length + badGhosts.length) } as CSSProperties}>
+      <PartyEffects intensity={screen === "map" ? (progress.goodStampIds.length + progress.badStampIds.length) / (goodGhosts.length + badGhosts.length) : 1} />
       {!activeGhost && !earned && storageNotice}
       {screen === "title" && (
         <RallyTitle headingRef={headingRef} onStart={() => setScreen("help")} />

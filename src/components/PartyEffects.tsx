@@ -16,20 +16,21 @@ export function PartyWords({ text }: { text: string }) {
   </>;
 }
 
-export function PartyEffects({ contained = false }: { contained?: boolean }) {
+export function PartyEffects({ contained = false, intensity = 1, spooky = false }: { contained?: boolean; intensity?: number; spooky?: boolean }) {
   const local = contained ? " party-local" : "";
+  const level = Math.max(0, Math.min(1, intensity));
   return (
     <>
-      <div className={`party-effects${local}`} aria-hidden="true">
+      <div className={`party-effects${local}${spooky ? " party-spooky" : ""}`} aria-hidden="true" style={{ "--party-intensity": level, "--ray-time": `${120 - level * 84}s` } as CSSProperties}>
         <div className="party-rays" />
         <div className="party-halo" />
-        {confetti.map((piece, index) => (
+        {!spooky && confetti.slice(0, Math.round(48 * level)).map((piece, index) => (
           <i className="party-confetti" key={index} style={{
             left: `${piece.left}%`, background: piece.color,
             "--fall-time": `${piece.duration}s`, "--fall-delay": `${piece.delay}s`,
           } as CSSProperties} />
         ))}
-        {[8, 82, 35, 65, 16, 90].map((left, index) => (
+        {!spooky && [8, 82, 35, 65, 16, 90].slice(0, Math.ceil(6 * level)).map((left, index) => (
           <div className="party-mascot" key={left} style={{
             left: `${left}%`, top: `${10 + index * 13}%`,
             "--float-delay": `${index * .3}s`,
@@ -45,8 +46,7 @@ export function PartyEffects({ contained = false }: { contained?: boolean }) {
           </div>
         ))}
       </div>
-      <div className={`party-flash${local}`} aria-hidden="true" />
-      <div className={`party-edge${local}`} aria-hidden="true" />
+      {!spooky && level > 0 && <div className={`party-edge${local}`} aria-hidden="true" style={{ opacity: level * .6 }} />}
     </>
   );
 }

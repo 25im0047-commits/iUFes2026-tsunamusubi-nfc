@@ -4,9 +4,7 @@ import { emptyProgress, goodGhosts, STORAGE_KEY } from "../../src/lib/rally";
 async function snapshot(page: Page, path: string) {
   // Hold screens in human-review recordings, not as a page-readiness wait.
   if (process.env.IUFES_RECORD_PARTY === "1") await page.waitForTimeout(900);
-  await expect(page.locator("body > .party-flash")).toHaveCSS("animation-name", "party-flash");
-  const flash = page.getByRole("dialog").count().then(count => count ? page.locator("dialog .party-flash") : page.locator("body > .party-flash"));
-  await expect.poll(async () => (await flash).evaluate(element => Number(getComputedStyle(element).opacity))).toBeLessThan(.05);
+  await expect(page.locator(".party-flash")).toHaveCount(0);
   await page.screenshot({ path });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 }
@@ -23,15 +21,18 @@ test.describe("all-screen celebration", () => {
     await snapshot(page, testInfo.outputPath("02-help.png"));
     await page.getByRole("button", { name: "マップを みる！" }).click();
     await snapshot(page, testInfo.outputPath("03-map.png"));
+    await expect(page.locator("main > .party-effects .party-confetti")).toHaveCount(0);
     await page.getByRole("link", { name: "おばけずかん", exact: true }).click();
     await snapshot(page, testInfo.outputPath("04-book.png"));
     await page.goto("/?id=good-01");
     await expect(page.getByRole("dialog")).toHaveAccessibleName(goodGhosts[0].name);
     await snapshot(page, testInfo.outputPath("05-conversation.png"));
+    await expect(page.locator("dialog .party-confetti")).toHaveCount(48);
     await page.getByRole("button", { name: "会話を終えてスタンプを獲得", exact: true }).click();
     await expect(page.locator(".friendship-meter")).toContainText("1 / 11");
     await snapshot(page, testInfo.outputPath("06-friendship.png"));
     await page.getByRole("button", { name: "マップにもどる", exact: true }).click();
+    await expect(page.locator("main > .party-effects .party-confetti")).toHaveCount(4);
     await page.evaluate(({ key, progress }) => localStorage.setItem(key, JSON.stringify(progress)), {
       key: STORAGE_KEY,
       progress: { ...emptyProgress(), hasStarted: true, goodStampIds: goodGhosts.slice(0, -1).map(ghost => ghost.id) },
@@ -41,9 +42,13 @@ test.describe("all-screen celebration", () => {
     await page.getByRole("button", { name: "新しい気配をたしかめる！", exact: true }).click();
     await snapshot(page, testInfo.outputPath("07-unlock.png"));
     await page.getByRole("button", { name: "あやしいかげを さがす！", exact: true }).click();
+    await expect(page.locator("main > .party-effects .party-confetti")).toHaveCount(39);
     for (const [id, action] of [["bad-01", "メデューサを げんきづける！"], ["bad-02", "ヴァンパイアに ほうこくする！"]]) {
       await page.goto(`/?id=${id}`);
       await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(page.locator("dialog .party-confetti")).toHaveCount(0);
+      await expect(page.locator("dialog .party-mascot")).toHaveCount(0);
+      await expect(page.locator("dialog .dialog-ghost")).toHaveCSS("animation-name", "spooky-drift");
       await snapshot(page, testInfo.outputPath(`08-${id}-survey.png`));
       await page.getByRole("button", { name: action, exact: true }).click();
       await page.getByRole("button", { name: id === "bad-01" ? "マップにもどる" : "コンプリート画面へ！", exact: true }).click();

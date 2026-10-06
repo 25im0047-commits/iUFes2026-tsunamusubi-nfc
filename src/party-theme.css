@@ -4,14 +4,14 @@ body.party-theme { isolation: isolate; color: #fff; background: linear-gradient(
 .party-theme { --party-display: "Dela Gothic One", "Hiragino Kaku Gothic ProN", sans-serif; font-family: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; }
 .party-theme .party-sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .party-effects { position: fixed; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; }
-.party-rays { position: absolute; width: 220vmax; height: 220vmax; top: calc(36vh - 110vmax); left: calc(50% - 110vmax); background: repeating-conic-gradient(#ffffff27 0 10deg, transparent 10deg 20deg); animation: party-spin 36s linear infinite; }
+.party-rays { position: absolute; width: 220vmax; height: 220vmax; top: calc(36vh - 110vmax); left: calc(50% - 110vmax); background: repeating-conic-gradient(#ffffff27 0 10deg, transparent 10deg 20deg); opacity: calc(.12 + var(--party-intensity, 1) * .88); animation: party-spin var(--ray-time, 36s) linear infinite; }
 .party-halo { position: absolute; left: calc(50% - 140px); top: calc(36% - 140px); width: 280px; height: 280px; border: 3px solid #ffffffaa; border-radius: 50%; box-shadow: 0 0 70px #fff8, inset 0 0 50px #fff6; animation: party-shock 1.6s ease-out infinite; }
 .party-confetti { position: absolute; top: -30px; width: 9px; height: 19px; border-radius: 2px; animation: party-fall var(--fall-time) linear var(--fall-delay) infinite; }
 .party-mascot { position: absolute; width: 38px; height: 46px; filter: drop-shadow(0 0 15px #fff9); animation: party-float 1.6s var(--float-delay) ease-in-out infinite; }
 .party-mascot svg { display: block; width: 100%; height: 100%; }
 .party-flash, .party-edge { position: fixed; z-index: 20; inset: 0; pointer-events: none; }
-.party-flash { background: #fff; animation: party-flash 2.4s ease-out infinite; }
-.party-edge { box-shadow: inset 0 0 90px 12px #fff9; animation: party-edge .45s ease-in-out infinite alternate; }
+.party-flash { display: none; }
+.party-edge { box-shadow: inset 0 0 90px 12px #ff9bcb99; }
 .party-local.party-effects { position: absolute; z-index: 0; border-radius: inherit; }
 .party-local .party-rays { width: 1500px; height: 1500px; top: calc(36% - 750px); left: calc(50% - 750px); }
 .party-local.party-flash, .party-local.party-edge { position: absolute; border-radius: inherit; }
@@ -80,7 +80,6 @@ body.party-theme { isolation: isolate; color: #fff; background: linear-gradient(
 @keyframes party-shock { 0% { transform: scale(.8); opacity: .9; } 100% { transform: scale(1.8); opacity: 0; } }
 @keyframes party-fall { to { transform: translateY(110vh) translateX(30px) rotate(900deg); } }
 @keyframes party-float { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-18px) rotate(4deg); } }
-@keyframes party-flash { 0% { opacity: .55; } 20%,100% { opacity: 0; } }
 @keyframes party-edge { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
 @keyframes party-hop { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
 @keyframes party-jump { 0%,100% { transform: translateY(0) scale(1.12,.9); } 30% { transform: translateY(-32px) scale(.9,1.12); } 60% { transform: translateY(-32px) scale(.94,1.08) rotate(6deg); } 85% { transform: translateY(0) scale(1.12,.9); } }
@@ -98,6 +97,28 @@ body.party-theme { isolation: isolate; color: #fff; background: linear-gradient(
 @media (max-width: 390px) {
   .party-theme .title-ghosts .ghost-artwork { width: 125px; }
 }
+/* Exploration builds gradually; dialog celebrations remain at full strength. */
+.party-theme .page > .party-effects { position: fixed; z-index: 0; }
+.party-theme .page > .party-edge { position: fixed; z-index: 0; }
+.party-theme :is(.flow-map, .flow-book) .venue-marker > span { animation-duration: calc(6s - var(--map-intensity) * 4.2s); }
+.party-theme .flow-book .status-row.done .stamp-art { animation-duration: calc(6s - var(--map-intensity) * 4s); }
+.flow-map > .party-effects .party-halo, .flow-book > .party-effects .party-halo { opacity: var(--map-intensity); animation: none; transform: scale(1.4); }
+.party-theme :is(.flow-map, .flow-book) > :not(dialog):not(.party-effects):not(.party-edge) .party-letter { animation-duration: calc(3.2s - var(--map-intensity) * 2.4s); }
+.party-theme :is(.flow-map, .flow-book) > :not(dialog) .party-letter { --map-hop: calc(var(--map-intensity) * -14px); animation-name: map-hop; }
+.party-theme :is(.flow-map, .flow-book) > :not(dialog) .action::before { display: none; }
+.party-theme :is(.flow-map, .flow-book) > :not(dialog) .action::after { opacity: var(--map-intensity); animation-duration: calc(5s - var(--map-intensity) * 3.6s); }
+@keyframes map-hop { 0%,100% { transform: translateY(0); } 50% { transform: translateY(var(--map-hop, 0px)); } }
+.party-theme dialog.dialog.bad { background: radial-gradient(ellipse at 50% 25%, #38204b, #160f24 65%, #090610); box-shadow: 0 0 45px #67288166, 0 24px 60px #090610aa; }
+.party-theme .dialog.bad::backdrop { background: #090610dd; }
+.party-spooky .party-rays { background: repeating-conic-gradient(#9366ab18 0 10deg, transparent 10deg 20deg); animation-duration: 150s; }
+.party-spooky .party-halo { border-color: #9972b555; box-shadow: 0 0 65px #71378b55, inset 0 0 50px #71378b33; animation: spooky-breathe 7s ease-in-out infinite; }
+.party-theme .dialog.bad .party-letter { color: #e7d5ef; animation: none; }
+.party-theme .dialog.bad .dialog-ghost { background: #25162e; box-shadow: 0 0 0 8px #9161a322, 0 0 36px #71378b66; animation: spooky-drift 6s ease-in-out infinite; }
+.party-theme .dialog.bad .action { color: #f3e5f9; background: #573363; box-shadow: 0 5px 0 #2d1937; }
+.party-theme .dialog.bad .action::before, .party-theme .dialog.bad .action::after { display: none; }
+.party-theme .dialog.bad .speech { background: #eee5f2; }
+@keyframes spooky-breathe { 0%,100% { opacity: .2; transform: scale(1); } 50% { opacity: .55; transform: scale(1.15); } }
+@keyframes spooky-drift { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-8px) rotate(2deg); } }
 @media (prefers-reduced-motion: reduce) {
   .party-theme *, .party-theme *::before, .party-theme *::after { animation: none !important; transition: none !important; }
   .party-confetti, .party-mascot, .party-flash, .party-edge, .party-halo { display: none; }

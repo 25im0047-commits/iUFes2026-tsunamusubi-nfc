@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
 import '../styles.css'
 import '../party-theme.css'
-import { PartyEffects } from '../components/PartyEffects'
 
 export const Route = createRootRoute({
   head: () => ({ meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }, { title: 'iUFes2026 おばけMap' }] }),
@@ -14,5 +13,5 @@ function Root() {
 }
 
 function Document({ children }: Readonly<{ children: ReactNode }>) {
-  return <html lang="ja"><head><HeadContent /></head><body className="party-theme"><PartyEffects />{children}<Scripts /></body></html>
+  return <html lang="ja"><head><HeadContent /></head><body className="party-theme">{children}<Scripts /></body></html>
 }
