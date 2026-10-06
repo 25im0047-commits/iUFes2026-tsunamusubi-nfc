@@ -8,7 +8,8 @@ async function expectLayout(page: Page) {
   if (await dialog.count()) {
     expect(await dialog.evaluate(e => {
       const r = e.getBoundingClientRect();
-      return e.scrollWidth <= e.clientWidth && r.left >= 15 && r.right <= innerWidth - 15 && r.top >= 15 && r.bottom <= innerHeight - 15;
+      const inset = e.classList.contains('earned-dialog') ? 0 : 15;
+      return e.scrollWidth <= e.clientWidth && r.left >= inset && r.right <= innerWidth - inset && r.top >= inset && r.bottom <= innerHeight - inset;
     })).toBe(true);
     const close = dialog.getByRole('button', { name: '閉じる', exact: true });
     const box = await close.boundingBox();

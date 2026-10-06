@@ -80,10 +80,12 @@ async function expectCenteredDialog(page: Page) {
     .toBeLessThan(2);
   const bounds = await dialog.boundingBox();
   const viewport = page.viewportSize()!;
-  expect(bounds!.x).toBeGreaterThanOrEqual(15);
-  expect(bounds!.y).toBeGreaterThanOrEqual(15);
-  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width - 15);
-  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height - 15);
+  const fullScreen = await dialog.evaluate(element => element.classList.contains("earned-dialog"));
+  const inset = fullScreen ? 0 : 15;
+  expect(bounds!.x).toBeGreaterThanOrEqual(inset);
+  expect(bounds!.y).toBeGreaterThanOrEqual(inset);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width - inset);
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height - inset);
   expect(
     await dialog.evaluate(
       (element) => element.scrollWidth <= element.clientWidth,

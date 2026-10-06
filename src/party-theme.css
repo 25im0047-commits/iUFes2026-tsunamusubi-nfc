@@ -58,7 +58,7 @@ body.party-theme { isolation: isolate; color: #fff; background: linear-gradient(
 .party-theme .page footer { border: 0; text-shadow: 0 2px 8px #2b106077; }
 .party-theme .completion-seal { display: grid; place-items: center; width: 170px; height: 170px; margin: 26px auto; border-radius: 50%; color: #ffd54a; background: #ffffff22; box-shadow: 0 0 0 10px #ffffff33, 0 0 45px #ffe27a88; animation: party-badge .8s ease-in-out infinite; }
 .party-theme dialog.dialog { isolation: isolate; color: #fff; background: linear-gradient(160deg, #ff6ab0, #c2208a 32%, #5b22d4 85%); box-shadow: 0 0 60px #ff9bcb88, 0 24px 60px #2b106066; animation: none; }
-.party-theme .dialog > *:not(.party-effects):not(.party-flash):not(.party-edge):not(.close) { position: relative; z-index: 1; }
+.party-theme .dialog > *:not(.party-effects):not(.party-flash):not(.party-edge):not(.found-effects):not(.found-edge):not(.found-flash):not(.close) { position: relative; z-index: 1; }
 .party-theme .dialog .close { position: absolute; z-index: 30; color: #2b1060; background: #ffffffee; box-shadow: 0 0 22px #fff7; }
 .party-theme .dialog > h2 { color: #fff; font-family: var(--party-display); font-size: 22px; font-weight: 400; line-height: 1.5; }
 .party-theme .dialog-location, .party-theme .dialog-detail, .party-theme .conversation-note, .party-theme .survey-help, .party-theme .score-help { color: #fff; }

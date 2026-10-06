@@ -5,6 +5,7 @@ import { readNfcUrl } from "../lib/nfc";
 import { VenueMap } from "../components/VenueMap";
 import { RallyTitle } from "../components/RallyTitle";
 import { PartyEffects, PartyWords } from "../components/PartyEffects";
+import { FoundOrbit } from "../components/FoundEffects";
 import { getGhostPlacement, prizeLocation, type WeatherMode } from "../lib/venue";
 import {
   badGhosts,
@@ -476,33 +477,45 @@ function RallyPage() {
           className="earned-dialog"
         >
           {storageNotice}
-          <p className="friendship-wordmark" aria-hidden="true"><PartyWords text="みつけた！" /></p>
-          <div className="dialog-ghost stamp-pop">
-            <GhostImage ghost={earned.ghost} variant="stamp" />
-            <span className="friendship-plus" aria-hidden="true">+1</span>
-          </div>
-          <div className="friendship-meter">
-            <strong>スタンプ ゲット</strong>
-            <span>{progress.goodStampIds.length + progress.badStampIds.length} / {goodGhosts.length + badGhosts.length}</span>
-            <div className="friendship-dots" aria-hidden="true">
-              {Array.from({ length: goodGhosts.length + badGhosts.length }, (_, index) => (
-                <i key={index} className={index < progress.goodStampIds.length + progress.badStampIds.length ? "filled" : ""} />
-              ))}
+          <div className="found-scene">
+            <p className="found-name">{earned.ghost.name}と 仲よくなった！</p>
+            <FoundOrbit />
+            <div className="found-hero">
+              <div className="dialog-ghost stamp-pop">
+                <GhostImage ghost={earned.ghost} variant="stamp" />
+              </div>
             </div>
+            <span className="friendship-plus" aria-hidden="true">+1</span>
+            <span className="found-cheer found-cheer-left" aria-hidden="true">やったー！</span>
+            <span className="found-cheer found-cheer-right" aria-hidden="true">すごい！！</span>
+            <div className="found-rises" aria-hidden="true">{[0, .4, .8, 1.1, 1.3].map((delay, i) => <span key={i} style={{ left: `${8 + i * 18}%`, top: `${66 + i % 3 * 9}%`, animationDelay: `${delay}s` }}>+1</span>)}</div>
+            <p className="friendship-wordmark" aria-hidden="true"><PartyWords text="みつけた！" /></p>
           </div>
-          <p className="speech">
-            {isSurveyId(earned.ghost.id)
-              ? surveys[earned.ghost.id].thanks
-              : "またいつでも お話ししにきてね！"}
-          </p>
-          <p className="dialog-detail">スタンプを獲得したよ！</p>
-          <button className="action" onClick={dismissEarned}>
-            {earnedNextScreen === "ending"
-              ? "コンプリート画面へ！"
-              : earnedNextScreen === "unlock"
-                ? "新しい気配をたしかめる！"
-                : "マップにもどる"}
-          </button>
+          <div className="found-footer">
+            <div className="friendship-meter">
+              <strong>スタンプ ゲット</strong>
+              <span>{progress.goodStampIds.length + progress.badStampIds.length} / {goodGhosts.length + badGhosts.length}</span>
+              <div className="friendship-dots" aria-hidden="true">
+                {Array.from({ length: goodGhosts.length + badGhosts.length }, (_, index) => (
+                  <i key={index} className={index < progress.goodStampIds.length + progress.badStampIds.length ? `filled${index === progress.goodStampIds.length + progress.badStampIds.length - 1 ? " newest" : ""}` : ""} />
+                ))}
+              </div>
+              <div className="found-progress" aria-hidden="true"><i style={{ "--previous-progress": Math.max(0, progress.goodStampIds.length + progress.badStampIds.length - 1) / (goodGhosts.length + badGhosts.length), transform: `scaleX(${(progress.goodStampIds.length + progress.badStampIds.length) / (goodGhosts.length + badGhosts.length)})` } as CSSProperties} /></div>
+            </div>
+            <p className="found-copy">
+              {isSurveyId(earned.ghost.id)
+                ? surveys[earned.ghost.id].thanks
+                : "またいつでも お話ししにきてね！"}
+            </p>
+            <p className="dialog-detail">スタンプを獲得したよ！</p>
+            <button className="action" onClick={dismissEarned}>
+              {earnedNextScreen === "ending"
+                ? "コンプリート画面へ！"
+                : earnedNextScreen === "unlock"
+                  ? "新しい気配をたしかめる！"
+                  : "マップにもどる"}
+            </button>
+          </div>
         </Dialog>
       )}
     </main>

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
 import '../styles.css'
 import '../party-theme.css'
+import '../found-theme.css'
 
 export const Route = createRootRoute({
   head: () => ({ meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }, { title: 'iUFes2026 おばけMap' }] }),

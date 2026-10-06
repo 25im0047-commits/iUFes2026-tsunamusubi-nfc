@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { Ghost } from "../lib/rally";
 import { PartyEffects, PartyWords } from "./PartyEffects";
+import { FoundStage } from "./FoundEffects";
 import {
   ARTWORK_WIDTH,
   ARTWORK_HEIGHT,
@@ -52,7 +53,7 @@ export function Dialog({
         onClose();
       }}
     >
-      <PartyEffects contained spooky={className === "bad"} />
+      {className !== "earned-dialog" && <PartyEffects contained spooky={className === "bad"} />}
       <button
         className="close"
         type="button"
@@ -64,7 +65,7 @@ export function Dialog({
       <h2 ref={headingRef} id={headingId} tabIndex={-1}>
         <PartyWords text={title} />
       </h2>
-      {children}
+      {className === "earned-dialog" ? <FoundStage>{children}</FoundStage> : children}
     </dialog>
   );
 }
