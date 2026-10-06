@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { Ghost } from "../lib/rally";
+import { PartyEffects, PartyWords } from "./PartyEffects";
 import {
   ARTWORK_WIDTH,
   ARTWORK_HEIGHT,
@@ -51,6 +52,7 @@ export function Dialog({
         onClose();
       }}
     >
+      <PartyEffects contained />
       <button
         className="close"
         type="button"
@@ -60,7 +62,7 @@ export function Dialog({
         ×
       </button>
       <h2 ref={headingRef} id={headingId} tabIndex={-1}>
-        {title}
+        <PartyWords text={title} />
       </h2>
       {children}
     </dialog>

@@ -1,6 +1,7 @@
 import type { Ref } from "react";
 import { goodGhosts } from "../lib/rally";
 import { GhostImage } from "./GhostDialog";
+import { PartyWords } from "./PartyEffects";
 
 export function RallyTitle({
   headingRef,
@@ -14,7 +15,7 @@ export function RallyTitle({
       <p className="label">iU Fes 2026</p>
       <p className="title-tagline">会場にかくれた ともだちを見つけよう。</p>
       <h1 ref={headingRef} tabIndex={-1}>
-        <span>おばけさがし</span>{" "}<span>スタンプラリー！</span>
+        <span><PartyWords text="おばけさがし" /></span>{" "}<span><PartyWords text="スタンプラリー！" /></span>
       </h1>
       <div className="title-artwork" aria-hidden="true">
         <div className="title-side-ghost title-side-left"><GhostImage ghost={goodGhosts[4]} /></div>

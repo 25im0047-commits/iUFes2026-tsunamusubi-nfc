@@ -1,0 +1,105 @@
+/* Shared celebration stage, taken from the supplied "みつけた！" scene. */
+body.party-theme { isolation: isolate; color: #fff; background: linear-gradient(160deg, #ff6ab0, #c2208a 32%, #5b22d4 80%); }
+.party-theme::before, .party-theme::after { display: none; }
+.party-theme { --party-display: "Dela Gothic One", "Hiragino Kaku Gothic ProN", sans-serif; font-family: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; }
+.party-theme .party-sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.party-effects { position: fixed; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; }
+.party-rays { position: absolute; width: 220vmax; height: 220vmax; top: calc(36vh - 110vmax); left: calc(50% - 110vmax); background: repeating-conic-gradient(#ffffff27 0 10deg, transparent 10deg 20deg); animation: party-spin 36s linear infinite; }
+.party-halo { position: absolute; left: calc(50% - 140px); top: calc(36% - 140px); width: 280px; height: 280px; border: 3px solid #ffffffaa; border-radius: 50%; box-shadow: 0 0 70px #fff8, inset 0 0 50px #fff6; animation: party-shock 1.6s ease-out infinite; }
+.party-confetti { position: absolute; top: -30px; width: 9px; height: 19px; border-radius: 2px; animation: party-fall var(--fall-time) linear var(--fall-delay) infinite; }
+.party-mascot { position: absolute; width: 38px; height: 46px; filter: drop-shadow(0 0 15px #fff9); animation: party-float 1.6s var(--float-delay) ease-in-out infinite; }
+.party-mascot svg { display: block; width: 100%; height: 100%; }
+.party-flash, .party-edge { position: fixed; z-index: 20; inset: 0; pointer-events: none; }
+.party-flash { background: #fff; animation: party-flash 2.4s ease-out infinite; }
+.party-edge { box-shadow: inset 0 0 90px 12px #fff9; animation: party-edge .45s ease-in-out infinite alternate; }
+.party-local.party-effects { position: absolute; z-index: 0; border-radius: inherit; }
+.party-local .party-rays { width: 1500px; height: 1500px; top: calc(36% - 750px); left: calc(50% - 750px); }
+.party-local.party-flash, .party-local.party-edge { position: absolute; border-radius: inherit; }
+.party-theme .page, .party-theme .page.flow-title { width: min(760px, 100%); min-height: 100vh; min-height: 100dvh; margin: 0 auto; padding: 0 24px 32px; overflow: clip; border-radius: 0; background: transparent; box-shadow: none; }
+.party-theme .page > * { position: relative; z-index: 1; }
+.party-theme .page > dialog.dialog { position: fixed; z-index: auto; }
+.party-theme .flow-panel, .party-theme .title-panel, .party-theme .unlock-panel, .party-theme .ending-panel { margin: 0; padding: 40px 0 28px; border-radius: 0; color: #fff; background: transparent; box-shadow: none; }
+.party-theme .label { color: #fff; }
+.party-theme .flow-panel > .label, .party-theme .instruction > .label { display: inline-block; padding: 7px 17px; border-radius: 999px; color: #fff; background: #ffffff29; }
+.party-theme .flow-panel h1, .party-theme .instruction h1 { margin: 22px 0 28px; color: #fff; font-family: var(--party-display); font-size: clamp(30px, 6.5vw, 50px); font-weight: 400; line-height: 1.4; text-shadow: 0 6px 28px #5b22d488; text-wrap: balance; }
+.party-theme .title-panel h1 { font-size: clamp(29px, 7.8vw, 48px); }
+.party-theme .title-panel h1 > span { display: block; }
+.party-theme .party-letter { display: inline-block; white-space: pre; animation: party-hop .8s var(--letter-delay) ease-in-out infinite; }
+.party-theme h1 .party-letter:nth-child(2n), .party-theme h2 .party-letter:nth-child(2n), .friendship-wordmark .party-letter:nth-child(2n) { color: #ffe27a; }
+.party-theme .title-tagline, .party-theme .title-footnote { color: #fff !important; }
+.party-theme .ghost-artwork { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; }
+.party-theme .title-ghosts .ghost-artwork { width: 150px; height: 150px; }
+.party-theme .title-artwork { margin: 28px auto; }
+.party-theme .title-ghosts { position: relative; border-radius: 50%; background: radial-gradient(circle, #ffffff77, transparent 72%); animation: party-jump .9s ease-in-out infinite; }
+.party-theme .title-ghosts .ghost-artwork { animation: none; }
+.party-theme .title-sticker { border: 0; background: #ffd54a; color: #2b1060; box-shadow: 0 6px 0 #e3a400, 0 0 32px #ffe27a88; }
+.party-theme .flow-panel > p, .party-theme .instruction > p, .party-theme .page footer { color: #fff; }
+.party-theme .instruction { padding: 32px 0 18px; }
+.party-theme .instruction .text-button, .party-theme .flow-panel .text-button { color: #fff; }
+.party-theme .page .panel { border: 2px solid #ffffff77; border-radius: 30px; color: #2b1060; background: #ffffffeb; box-shadow: 0 0 30px #fff4, 0 14px 34px #2b106044; }
+.party-theme .page .panel .label { color: #5b22d4; }
+.party-theme .progress.panel { background: #ffffffeb; box-shadow: 0 0 38px #ffe27a66; }
+.party-theme .panel-title h2, .party-theme .stamp-heading h2 { color: #2b1060; }
+.party-theme .panel-title strong { font-family: var(--party-display); font-weight: 400; }
+.party-theme .map-shortcuts a { border: 0; border-radius: 28px; color: #2b1060; background: #ffe27a; box-shadow: 0 5px 0 #e3a400, 0 0 24px #ffe27a66; }
+.party-theme .map-shortcuts a:last-child { color: #5b22d4; background: #ffffffed; box-shadow: 0 5px 0 #c9b8ee; }
+.party-theme .how-to, .party-theme .prize-location { border: 0; color: #2b1060; background: #ffffffeb; box-shadow: 0 0 30px #fff5; }
+.party-theme .flow-panel > .prize-location { color: #2b1060; }
+.party-theme .page .how-to { border-radius: 30px; }
+.party-theme .action { position: relative; overflow: hidden; color: #2b1060; background: #ffd54a; box-shadow: 0 6px 0 #e3a400, 0 16px 26px #2b106044, inset 0 3px 0 #ffffffbb; animation: none; }
+.party-theme .action::before { position: absolute; inset: 0; display: block; border-radius: inherit; background: #fff; pointer-events: none; content: ""; animation: party-button-light .55s ease-in-out infinite; }
+.party-theme .action::after { position: absolute; top: 0; bottom: 0; left: 0; width: 44px; opacity: 1; background: #ffffffb3; pointer-events: none; content: ""; animation: party-shine 1.4s ease-in-out infinite; }
+.party-theme .action:hover { animation: none; }
+.party-theme .status-row { border: 2px solid #ffffff77; box-shadow: 0 0 18px #ff9bcb77; }
+.party-theme .stamp-art { background: #e4d6ff; }
+.party-theme .status-row.done .stamp-art { background: repeating-conic-gradient(from 10deg, #ff9bcb44 0 15deg, transparent 15deg 30deg), #fff0f7; }
+.party-theme .status-row.done .stamp-art { animation: bob 2s ease-in-out infinite; }
+.party-theme .status-row.done .stamp-art .ghost-artwork { filter: drop-shadow(0 0 9px #ff4f9a99); animation: none; }
+.party-theme .page footer { border: 0; text-shadow: 0 2px 8px #2b106077; }
+.party-theme .completion-seal { display: grid; place-items: center; width: 170px; height: 170px; margin: 26px auto; border-radius: 50%; color: #ffd54a; background: #ffffff22; box-shadow: 0 0 0 10px #ffffff33, 0 0 45px #ffe27a88; animation: party-badge .8s ease-in-out infinite; }
+.party-theme dialog.dialog { isolation: isolate; color: #fff; background: linear-gradient(160deg, #ff6ab0, #c2208a 32%, #5b22d4 85%); box-shadow: 0 0 60px #ff9bcb88, 0 24px 60px #2b106066; animation: none; }
+.party-theme .dialog > *:not(.party-effects):not(.party-flash):not(.party-edge):not(.close) { position: relative; z-index: 1; }
+.party-theme .dialog .close { position: absolute; z-index: 30; color: #2b1060; background: #ffffffee; box-shadow: 0 0 22px #fff7; }
+.party-theme .dialog > h2 { color: #fff; font-family: var(--party-display); font-size: 22px; font-weight: 400; line-height: 1.5; }
+.party-theme .dialog-location, .party-theme .dialog-detail, .party-theme .conversation-note, .party-theme .survey-help, .party-theme .score-help { color: #fff; }
+.party-theme .dialog-ghost, .party-theme .dialog.bad .dialog-ghost { position: relative; max-width: 240px; border-radius: 50%; background: #ffffff33; box-shadow: 0 0 0 8px #ffffff33, 0 0 36px #fff6; }
+.party-theme .dialog-ghost .ghost-artwork { animation: none; }
+.party-theme .dialog-ghost { animation: party-jump .9s ease-in-out infinite; }
+.party-theme .speech { color: #2b1060; background: #fffffff0; box-shadow: 0 10px 24px #2b106033; }
+.party-theme .speech::after { background: #fff; }
+.party-theme .survey fieldset, .party-theme .prototype-note { color: #2b1060; background: #ffffffed; }
+.party-theme .survey legend { padding: 6px 12px; border-radius: 16px; color: #2b1060; background: #fff; }
+.party-theme .form-error { padding: 10px 14px; border-radius: 16px; color: #a31750; background: #fff; }
+.friendship-wordmark { margin: 18px -8px 24px; color: #fff; font-family: var(--party-display); font-size: clamp(46px, 15vw, 72px); font-weight: 400; line-height: 1.3; text-align: center; text-shadow: 0 6px 30px #5b22d488; }
+.friendship-plus { position: absolute; top: -6px; right: -10px; display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; color: #2b1060; background: #ffd54a; font-family: var(--party-display); font-size: 26px; box-shadow: 0 0 28px #ffe27a88; }
+.friendship-meter { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin: 26px 0 16px; padding: 18px; border-radius: 26px; color: #2b1060; background: #ffffffeb; }
+.friendship-dots { display: flex; justify-content: space-between; gap: 4px; width: 100%; }
+.friendship-dots i { width: 12px; height: 12px; border-radius: 50%; background: #e4d6ff; }
+.friendship-dots i.filled { background: #ff4f9a; box-shadow: 0 0 10px #ff4f9a88; }
+@keyframes party-spin { to { transform: rotate(360deg); } }
+@keyframes party-shock { 0% { transform: scale(.8); opacity: .9; } 100% { transform: scale(1.8); opacity: 0; } }
+@keyframes party-fall { to { transform: translateY(110vh) translateX(30px) rotate(900deg); } }
+@keyframes party-float { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-18px) rotate(4deg); } }
+@keyframes party-flash { 0% { opacity: .55; } 20%,100% { opacity: 0; } }
+@keyframes party-edge { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+@keyframes party-hop { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+@keyframes party-jump { 0%,100% { transform: translateY(0) scale(1.12,.9); } 30% { transform: translateY(-32px) scale(.9,1.12); } 60% { transform: translateY(-32px) scale(.94,1.08) rotate(6deg); } 85% { transform: translateY(0) scale(1.12,.9); } }
+@keyframes party-badge { 0%,100% { transform: scale(1) rotate(-6deg); } 50% { transform: scale(1.12) rotate(6deg); } }
+@keyframes party-shine { 0% { transform: translateX(-100px) skewX(-20deg); } 60%,100% { transform: translateX(600px) skewX(-20deg); } }
+@keyframes party-button-light { 0%,100% { opacity: .04; } 50% { opacity: .28; } }
+@media (max-width: 650px) {
+  .party-theme .page, .party-theme .page.flow-title { width: 100%; margin: 0; padding: 0 20px 28px; }
+  .party-theme .flow-panel, .party-theme .title-panel, .party-theme .unlock-panel, .party-theme .ending-panel { margin: 0; padding: 32px 0 22px; }
+  .party-theme .flow-panel h1 { font-size: clamp(26px, 7.8vw, 40px); }
+  .party-theme .instruction h1 { font-size: clamp(29px, 8vw, 40px); }
+  .party-theme .title-panel h1 { font-size: clamp(26px, 7.2vw, 40px); }
+  .party-theme .panel-title strong { font-size: 32px; }
+}
+@media (max-width: 390px) {
+  .party-theme .title-ghosts .ghost-artwork { width: 125px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .party-theme *, .party-theme *::before, .party-theme *::after { animation: none !important; transition: none !important; }
+  .party-confetti, .party-mascot, .party-flash, .party-edge, .party-halo { display: none; }
+  .party-theme .action::before, .party-theme .action::after { display: none; }
+}
