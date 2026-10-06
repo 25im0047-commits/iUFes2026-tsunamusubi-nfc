@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2026-10-06
+
+- 全画面の見た目を新デザインに統一。提供された `styles.css` と `venue-map.css` で `src/` の同名CSSを上書きし、配色・背景・カード・ボタン・演出を揃える。取得条件・会話内容・保存処理は変更しない。
+
 ## 2026-10-05
 
 - [CVE-2026-102989 / GHSA-qx66-fv34-fjm8](https://github.com/TanStack/router/security/advisories/GHSA-qx66-fv34-fjm8)対応：TanStack Startを1.168.49から修正版1.168.60へ固定し、server coreを1.169.31から1.169.39へ更新。npm監査0件に加えて公式告知・lock・実依存を照合。型・単体38件・Vercel用ビルド/配信3件が成功。Vercel失敗ログは権限不足で未確認。詳細は[セキュリティ更新記録](docs/security-20261005.md)。
