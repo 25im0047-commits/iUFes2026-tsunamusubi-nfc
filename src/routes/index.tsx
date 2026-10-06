@@ -4,6 +4,7 @@ import { Dialog, GhostDialog, GhostImage } from "../components/GhostDialog";
 import { readNfcUrl } from "../lib/nfc";
 import { VenueMap } from "../components/VenueMap";
 import { RallyTitle } from "../components/RallyTitle";
+import { PartyWords } from "../components/PartyEffects";
 import { getGhostPlacement, prizeLocation, type WeatherMode } from "../lib/venue";
 import {
   badGhosts,
@@ -259,7 +260,7 @@ function RallyPage() {
   const markers = [...goodGhosts, ...(goodComplete ? badGhosts : [])].map(ghostForWeather);
   const heading = (text: string) => (
     <h1 ref={headingRef} tabIndex={-1}>
-      {text}
+      <PartyWords text={text} />
     </h1>
   );
 
@@ -474,8 +475,19 @@ function RallyPage() {
           className="earned-dialog"
         >
           {storageNotice}
+          <p className="friendship-wordmark" aria-hidden="true"><PartyWords text="みつけた！" /></p>
           <div className="dialog-ghost stamp-pop">
             <GhostImage ghost={earned.ghost} variant="stamp" />
+            <span className="friendship-plus" aria-hidden="true">+1</span>
+          </div>
+          <div className="friendship-meter">
+            <strong>スタンプ ゲット</strong>
+            <span>{progress.goodStampIds.length + progress.badStampIds.length} / {goodGhosts.length + badGhosts.length}</span>
+            <div className="friendship-dots" aria-hidden="true">
+              {Array.from({ length: goodGhosts.length + badGhosts.length }, (_, index) => (
+                <i key={index} className={index < progress.goodStampIds.length + progress.badStampIds.length ? "filled" : ""} />
+              ))}
+            </div>
           </div>
           <p className="speech">
             {isSurveyId(earned.ghost.id)
