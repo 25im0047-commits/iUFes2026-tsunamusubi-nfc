@@ -10,17 +10,17 @@ export const ARTWORK_HEIGHT = 472;
 const artworkByGhost: Record<string, {
   slug: string; characterViewBox: string; stampViewBox: string;
 }> = {
-  "good-01": { slug: "cat-red", characterViewBox: "84 116 182 241", stampViewBox: "51 110 249 247" },
-  "good-02": { slug: "cat-blue", characterViewBox: "81 114 210 247", stampViewBox: "48 107 257 257" },
-  "good-03": { slug: "spider", characterViewBox: "18 51 318 327", stampViewBox: "48 107 257 257" },
-  "good-04": { slug: "franken", characterViewBox: "31 82 311 335", stampViewBox: "48 107 257 257" },
-  "good-05": { slug: "witch", characterViewBox: "10 66 332 340", stampViewBox: "48 107 257 257" },
-  "good-06": { slug: "mummy", characterViewBox: "83 71 202 331", stampViewBox: "48 107 257 257" },
-  "good-07": { slug: "reaper", characterViewBox: "24 58 325 356", stampViewBox: "50 108 253 252" },
-  "good-08": { slug: "skeleton", characterViewBox: "31 68 317 337", stampViewBox: "48 107 257 257" },
-  "good-09": { slug: "mermaid", characterViewBox: "66 54 220 361", stampViewBox: "48 107 257 257" },
-  "bad-01": { slug: "medusa", characterViewBox: "70 49 223 372", stampViewBox: "48 107 257 255" },
-  "bad-02": { slug: "vampire", characterViewBox: "55 55 249 363", stampViewBox: "48 107 257 257" },
+  "good-01": { slug: "cat-red", characterViewBox: "84 116 182 241", stampViewBox: "84 116 182 241" },
+  "good-02": { slug: "cat-blue", characterViewBox: "81 114 210 247", stampViewBox: "81 114 210 247" },
+  "good-03": { slug: "spider", characterViewBox: "18 51 318 327", stampViewBox: "18 51 318 327" },
+  "good-04": { slug: "franken", characterViewBox: "31 82 311 335", stampViewBox: "31 82 311 335" },
+  "good-05": { slug: "witch", characterViewBox: "10 66 332 340", stampViewBox: "10 66 332 340" },
+  "good-06": { slug: "mummy", characterViewBox: "83 71 202 331", stampViewBox: "83 71 202 331" },
+  "good-07": { slug: "reaper", characterViewBox: "24 58 325 356", stampViewBox: "24 58 325 356" },
+  "good-08": { slug: "skeleton", characterViewBox: "31 68 317 337", stampViewBox: "31 68 317 337" },
+  "good-09": { slug: "mermaid", characterViewBox: "66 54 220 361", stampViewBox: "66 54 220 361" },
+  "bad-01": { slug: "medusa", characterViewBox: "70 49 223 372", stampViewBox: "70 49 223 372" },
+  "bad-02": { slug: "vampire", characterViewBox: "55 55 249 363", stampViewBox: "55 55 249 363" },
 };
 
 export function getGhostArtwork(

@@ -31,7 +31,8 @@ test("admin login writes shared SQL weather and another participant picks it up 
   await expect(page.getByRole("status")).toContainText("保存しました");
   expect((await db.execute("SELECT weather FROM iufes2026_weather")).rows[0].weather).toBe("rainy");
   await participant.evaluate(()=>window.dispatchEvent(new Event("focus")));
-  await expect(participant.locator(".venue-base")).toHaveAttribute("src","/maps/rally-map-1f-rainy-final-20261008.png");
+  await expect(participant.locator(".venue-weather-help")).toContainText("雨天");
+  await expect(participant.locator(".venue-base")).toHaveAttribute("src","/maps/rally-map-1f-sunny-20261008.png");
   await expect(participant.getByRole("progressbar")).toHaveAttribute("aria-valuenow","1");
   for(const width of [390,1024]){
    await page.setViewportSize({width,height:844});

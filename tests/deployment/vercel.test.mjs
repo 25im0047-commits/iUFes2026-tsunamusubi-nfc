@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import test from "node:test";
+import { installWeatherTransport } from "../weather-transport.mjs";
 
 // Run after building with NITRO_PRESET=vercel. Exercise the generated function,
 // since a successful Vite build alone does not guarantee deployable routes.
@@ -57,4 +58,17 @@ test("weather endpoints are API responses and fail closed without environment se
     assert.equal(response.headers.get("cache-control"), "no-store");
     assert.ok((await response.json()).error);
   }
+});
+
+test("SSR sends the shared rainy setting with the document and preloads the plain 1F map", async () => {
+  const transport = installWeatherTransport("rainy");
+  try {
+    const response = await handler.fetch(new Request("https://rally.example/"));
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.equal(transport.reads(), 1);
+    assert.match(html, /rainy/);
+    assert.match(html, /rel="preload"[^>]*href="\/maps\/rally-map-1f-sunny-20261008\.png"/);
+    assert.doesNotMatch(html, /test-only-token|TURSO_AUTH_TOKEN/);
+  } finally { transport.restore(); }
 });

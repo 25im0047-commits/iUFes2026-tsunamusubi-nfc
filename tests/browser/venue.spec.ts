@@ -30,28 +30,31 @@ test("shared weather overrides old local settings and leaves progress intact",as
  await expect(venue(page).locator(".venue-base")).toHaveAttribute("src",getFloorplan("3F","rainy").src);
  expect(await page.evaluate(key=>localStorage.getItem(key),STORAGE_KEY)).toBe(saved);
 });
-test("embedded survey ghost and prize stickers stay hidden until their existing unlock conditions",async({page})=>{
+test("all 1F icons are separate transparent artwork and retain ghost/prize unlock conditions",async({page})=>{
  const change=await mockWeather(page);
  await start(page);
  for(const weather of ["sunny","rainy"] as const){
   await change(weather);
-  await expect(venue(page).locator("[data-hidden-ghost]")).toHaveCount(2);
-  await expect(venue(page).locator("[data-hidden-prize]")).toHaveCount(1);
+  await expect(venue(page).locator(".venue-source-mask")).toHaveCount(0);
+  await expect(venue(page).locator(".venue-ghost-art")).toHaveCount(4);
+  for(const artwork of await venue(page).locator(".venue-ghost-art image").all())
+   expect(await artwork.getAttribute("href")).toMatch(/^\/ghosts\/characters\//);
+  await expect(venue(page).locator(".venue-prize-art")).toHaveCount(0);
   await expect(venue(page).locator(".venue-marker.bad")).toHaveCount(0);
   await expect(venue(page).getByRole("list")).not.toContainText("メデューサ");
  }
  let progress=goodGhosts.reduce((p,g)=>recordGoodConversation(p,g.id),emptyProgress());
  await seed(page,progress);
  await expect(venue(page).locator(".venue-marker.bad")).toHaveCount(2);
- await expect(venue(page).locator("[data-hidden-ghost]")).toHaveCount(0);
- await expect(venue(page).locator("[data-hidden-prize]")).toHaveCount(1);
+ await expect(venue(page).locator(".venue-ghost-art")).toHaveCount(6);
+ await expect(venue(page).locator(".venue-prize-art")).toHaveCount(0);
  progress=completeBadConversation(progress,"bad-01",{}).progress;
  progress=completeBadConversation(progress,"bad-02",{}).progress;
  await seed(page,progress);
  await page.getByRole("button",{name:"マップ・ずかんにもどる"}).click();
  for(const weather of ["sunny","rainy"] as const){
   await change(weather);
-  await expect(venue(page).locator("[data-hidden-prize]")).toHaveCount(0);
+  await expect(venue(page).locator(".venue-prize-art")).toHaveCount(1);
   await expect(venue(page).getByLabel("景品受け取り場所："+getPrizeLocation(weather).location,{exact:true})).toBeVisible();
  }
 });
@@ -84,4 +87,14 @@ test("weather failure never fabricates an initial map and retry recovers",async(
  await page.evaluate(()=>window.dispatchEvent(new Event("focus")));
  await expect(venue(page).getByRole("alert")).toContainText("最後に取得した配置");
  await expect(venue(page).locator(".venue-base")).toHaveAttribute("src",getFloorplan("1F","rainy").src);
+});
+
+test("outdoor tab does not repeat the cats or render a second location list",async({page})=>{
+ await mockWeather(page);
+ await start(page);
+ await venue(page).getByRole("button",{name:"屋外",exact:true}).click();
+ await expect(venue(page).getByText("屋外の設置場所は1Fマップにまとめて表示しています。",{exact:true})).toBeVisible();
+ await expect(venue(page).locator(".venue-outdoor-cards, .venue-locations, .venue-empty")).toHaveCount(0);
+ for(const ghost of goodGhosts.slice(0,4))
+  await expect(venue(page).getByText(ghost.name,{exact:true})).toHaveCount(0);
 });

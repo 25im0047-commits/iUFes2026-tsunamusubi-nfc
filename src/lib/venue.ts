@@ -13,7 +13,7 @@ const commonUpperFloors: Record<string, GhostPlacement> = {
   "good-08": { floor: "3F", location: "3-8前の廊下", position: { top: "65.95%", left: "52.75%" } },
   "good-09": { floor: "3F", location: "左側の階段付近", position: { top: "63.47%", left: "28.18%" } },
 };
-// Latest supplied sunny/rainy images change 1F only.
+// Sunny/rainy positions share the supplied sticker-free 1F base drawing.
 export const ghostPlacements: Record<WeatherMode, Record<string, GhostPlacement>> = {
   sunny: {
     ...commonUpperFloors,
@@ -45,12 +45,18 @@ export const prizeLocation: GhostPlacement = {
 export const sunnyPrizeLocation = prizeLocation;
 export function getPrizeLocation(_weather: WeatherMode): GhostPlacement { return prizeLocation; }
 export const sunnyFloorplans = {
-  "1F": { src: "/maps/rally-map-1f-sunny-final-20261008.png", width: 2000, height: 1414 },
+  "1F": { src: "/maps/rally-map-1f-sunny-20261008.png", width: 2000, height: 1414 },
   "2F": { src: "/maps/rally-map-2f-sunny-20261008.png", width: 2000, height: 1414 },
   "3F": { src: "/maps/rally-map-3f-sunny-20261008.png", width: 2000, height: 1414 },
 };
-export function getFloorplan(floor: Exclude<VenueFloor, "屋外">, weather: WeatherMode) {
-  return floor === "1F" && weather === "rainy"
-    ? { src: "/maps/rally-map-1f-rainy-final-20261008.png", width: 2000, height: 1414 }
-    : sunnyFloorplans[floor];
+export function getFloorplan(floor: Exclude<VenueFloor, "屋外">, _weather: WeatherMode) {
+  return sunnyFloorplans[floor];
+}
+
+export function isPlacementOnFloor(placement: GhostPlacement | undefined, floor: VenueFloor) {
+  if (!placement) return false;
+  // Outdoor installations drawn on 1F are listed on 1F only.
+  return floor === "屋外"
+    ? placement.floor === "屋外" && !placement.mapFloor
+    : (placement.mapFloor ?? placement.floor) === floor;
 }

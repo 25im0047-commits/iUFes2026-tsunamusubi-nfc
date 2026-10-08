@@ -28,14 +28,20 @@ import {
   type Progress,
 } from "../lib/rally";
 import { isSurveyId, surveys, type SurveyAnswers } from "../lib/survey";
+import { getInitialWeather } from "../lib/initial-weather";
 
-export const Route = createFileRoute("/")({ component: RallyPage });
+export const Route = createFileRoute("/")({
+  loader: () => getInitialWeather(),
+  head: () => ({ links: [{ rel: "preload", as: "image", href: "/maps/rally-map-1f-sunny-20261008.png" }] }),
+  component: RallyPage,
+});
 type Screen = "title" | "help" | "map" | "unlock" | "ending" | "prize";
 type StorageIssue =
   "unavailable" | "repaired" | "migrated" | "unsaved" | "unsupported" | null;
 const emptyDraft: SurveyAnswers = {};
 
 function RallyPage() {
+  const initialWeather = Route.useLoaderData();
   const router = useRouter();
   const href = useLocation({ select: (location) => location.href });
   const [progress, setProgress] = useState<Progress>(emptyProgress);
@@ -43,8 +49,8 @@ function RallyPage() {
   const initialized = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [ready, setReady] = useState(false);
-  const [weather, setWeather] = useState<WeatherMode>("sunny");
-  const [weatherReady, setWeatherReady] = useState(false);
+  const [weather, setWeather] = useState<WeatherMode>(initialWeather?.weather ?? "sunny");
+  const [weatherReady, setWeatherReady] = useState(Boolean(initialWeather));
   const [weatherError, setWeatherError] = useState(false);
   const [weatherRetry, setWeatherRetry] = useState(0);
   const prizeLocation = getPrizeLocation(weather);
@@ -88,13 +94,14 @@ function RallyPage() {
       } catch { if (!disposed) setWeatherError(true); }
       finally { inFlight = false; }
     }
-    void refresh();
+    // SSR already loaded the setting. Avoid a second blocking browser request.
+    if (!initialWeather || weatherRetry > 0) void refresh();
     const timer = window.setInterval(() => void refresh(), 30000);
     const onResume = () => void refresh();
     window.addEventListener("focus", onResume);
     document.addEventListener("visibilitychange", onResume);
     return () => { disposed = true; controller.abort(); clearInterval(timer); window.removeEventListener("focus", onResume); document.removeEventListener("visibilitychange", onResume); };
-  }, [weatherRetry]);
+  }, [weatherRetry, initialWeather]);
 
   function persistProgress(next: Progress) {
     const result = saveProgress(next);
