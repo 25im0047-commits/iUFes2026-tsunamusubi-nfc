@@ -86,7 +86,7 @@ async function preventNetworkSubmissions(page: Page) {
   const attempts: string[] = [];
   await page.route("**/*", (route) => {
     const request = route.request();
-    if (!["GET", "HEAD"].includes(request.method())) {
+    if (!["GET", "HEAD"].includes(request.method()) && new URL(request.url()).pathname !== "/api/survey-responses") {
       attempts.push(`${request.method()} ${new URL(request.url()).pathname}`);
       return route.abort("blockedbyclient");
     }

@@ -21,7 +21,7 @@ type VenueMapProps = {
   showPrize: boolean;
 };
 
-const floors: VenueFloor[] = ["屋外", "1F", "2F", "3F"];
+const floors: VenueFloor[] = ["1F", "2F", "3F"];
 
 function Floorplan({ floor, weather }: { floor: Exclude<VenueFloor, "屋外">; weather: WeatherMode }) {
   const plan = getFloorplan(floor, weather);

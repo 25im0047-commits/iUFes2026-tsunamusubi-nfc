@@ -5,7 +5,7 @@
 .admin-card h1 { font-size: clamp(25px, 6vw, 34px); }
 .admin-card form { display: grid; gap: 18px; margin-top: 24px; }
 .admin-card label { display: grid; gap: 8px; font-weight: 800; }
-.admin-card input:not([type="radio"]) { width: 100%; box-sizing: border-box; border: 2px solid #cdb6df; border-radius: 12px; padding: 12px; font: inherit; background: #fff; color: #2b1060; }
+.admin-card input:not([type="radio"]):not([type="checkbox"]), .admin-card select { width: 100%; box-sizing: border-box; border: 2px solid #cdb6df; border-radius: 12px; padding: 12px; font: inherit; background: #fff; color: #2b1060; }
 .admin-card fieldset { display: flex; gap: 24px; border: 2px solid #cdb6df; border-radius: 14px; padding: 16px; }
 .admin-card .admin-option { display: flex; align-items: center; gap: 8px; }
 .admin-card input[type="radio"] { width: 20px; height: 20px; accent-color: #b82775; }
@@ -15,3 +15,9 @@
 .admin-card :focus-visible { outline: 3px solid #7439c6; outline-offset: 3px; }
 .admin-preview { width: 100%; border-radius: 12px; background: #000; }
 .admin-error { color: #ae1740; font-weight: 800; }
+.admin-card fieldset { flex-wrap: wrap; margin-bottom: 16px; }
+.admin-card input[type="checkbox"] { flex-shrink: 0; width: 20px; height: 20px; accent-color: #b82775; }
+.admin-card article { padding: 18px 0; border-bottom: 1px solid #cdb6df; overflow-wrap: anywhere; }
+.admin-card summary { cursor: pointer; font-weight: 800; }
+.admin-card dd { margin: 6px 0 18px; white-space: pre-wrap; }
+.admin-card button { margin: 4px; }

@@ -1,14 +1,18 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@libsql/client";
 import { schema, weatherResponse } from "../../src/server/weather.server";
+import { surveySchema, surveyResponse } from "../../src/server/surveys.server";
+import { surveys } from "../../src/lib/survey";
 test("admin login writes shared SQL weather and another participant picks it up without losing stamps",async({page,context},testInfo)=>{
  const db=createClient({url:":memory:"});
  process.env.ADMIN_USER="test-operator"; process.env.ADMIN_PASSWORD="test-only-password";
  await db.batch(schema,"write");
+ await db.batch(surveySchema,"write");
  await context.route("**/api/**",async route=>{
   const r=route.request();
   const req=new Request(r.url(),{method:r.method(),headers:r.headers(),...(r.postData()?{body:r.postData()!}:{})});
-  const response=await weatherResponse(req,new URL(req.url).pathname==="/api/admin/weather",db);
+  const path=new URL(req.url).pathname;
+  const response=path.includes("survey") ? await surveyResponse(req,path==="/api/admin/survey-rules"?"admin-rules":path==="/api/admin/survey-responses"?"admin-answers":path==="/api/survey-rules"?"rules":"submit",db) : await weatherResponse(req,path==="/api/admin/weather",db);
   await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:await response.text()});
  });
  try{
@@ -40,6 +44,26 @@ test("admin login writes shared SQL weather and another participant picks it up 
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   }
   expect(await page.evaluate(()=>Object.values(localStorage).some(value=>value.includes("test-only-password")))).toBe(false);
+  await page.getByRole("checkbox").first().uncheck();
+  await page.getByRole("button",{name:"質問設定を保存",exact:true}).click();
+  await expect(page.getByText("質問の必須設定を保存しました。",{exact:true})).toBeVisible();
+  expect((await db.execute("SELECT required FROM iufes2026_question_rules WHERE key='bad-01.visitor'")).rows[0].required).toBe(0);
+  const answers=Object.fromEntries(surveys["bad-01"].questions.map(q=>[q.id,q.kind==="multiple"?[q.options![0].id]:q.kind==="score"?"0":q.options![0].id]));
+  const submission=await surveyResponse(new Request("https://rally.local/api/survey-responses",{method:"POST",headers:{origin:"https://rally.local","content-type":"application/json"},body:JSON.stringify({participantId:"12345678-1234-1234-1234-123456789abc",ghostId:"bad-01",version:2,answers})}),"submit",db);
+  expect(submission.status).toBe(201);
+  await page.getByRole("button",{name:"一覧を再取得"}).click();
+  await expect(page.locator("details")).toHaveCount(1);
+  await page.locator("summary").click();
+  await expect(page.locator("dd")).toContainText(["小学生","ポスター・チラシ","めっちゃたのしかった！","0"]);
+  await page.getByLabel("おばけで絞り込み").selectOption("bad-02");
+  await expect(page.getByText("回答はありません。",{exact:true})).toBeVisible();
+  await page.getByLabel("おばけで絞り込み").selectOption("bad-01");
+  await expect(page.locator("details")).toHaveCount(1);
+  page.once("dialog",dialog=>dialog.accept());
+  await page.getByRole("button",{name:"この回答を削除",exact:true}).click();
+  await expect(page.getByText("回答を削除しました。",{exact:true})).toBeVisible();
+  await expect(page.locator("details")).toHaveCount(0);
+  expect((await db.execute("SELECT COUNT(*) AS n FROM iufes2026_survey_receipts")).rows[0].n).toBe(1);
   await page.getByRole("button",{name:"ログアウト"}).click();
   await expect(page.getByRole("button",{name:"ログイン",exact:true})).toBeVisible();
   await participant.close();

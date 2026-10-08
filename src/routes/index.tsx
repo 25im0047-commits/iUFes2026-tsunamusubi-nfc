@@ -29,6 +29,9 @@ import {
 } from "../lib/rally";
 import { isSurveyId, surveys, type SurveyAnswers } from "../lib/survey";
 import { getInitialWeather } from "../lib/initial-weather";
+import { readSurveyRules, validateRequiredAnswers, type SurveyRules } from "../lib/survey-rules";
+import { participantId, readDraft, storeDraft, clearDraft, pendingAnswers, retainSubmission, clearSubmission } from "../lib/participant";
+import { readPrizeState, receivePrize, PRIZE_STORAGE_KEY } from "../lib/prize";
 
 export const Route = createFileRoute("/")({
   loader: () => getInitialWeather(),
@@ -53,6 +56,11 @@ function RallyPage() {
   const [weatherReady, setWeatherReady] = useState(Boolean(initialWeather));
   const [weatherError, setWeatherError] = useState(false);
   const [weatherRetry, setWeatherRetry] = useState(0);
+  const [surveyRules, setSurveyRules] = useState<SurveyRules | null>(initialWeather?.rules ?? null);
+  const [rulesRetry, setRulesRetry] = useState(0);
+  const [submissionBusy, setSubmissionBusy] = useState(false);
+  const submissionBusyRef = useRef(false);
+  const [prizeState, setPrizeState] = useState({ received: false, error: false });
   const prizeLocation = getPrizeLocation(weather);
   const [screen, setScreen] = useState<Screen>("title");
   const focusedScreen = useRef<Screen | null>(null);
@@ -77,6 +85,39 @@ function RallyPage() {
       ? { ...ghost, area: placement.floor, location: placement.location }
       : ghost;
   }
+
+  useEffect(() => {
+    let stopped = false;
+    let inFlight = false;
+    const controller = new AbortController();
+    async function refresh() {
+      if (inFlight || document.visibilityState === "hidden") return;
+      inFlight = true;
+      try {
+        const response = await fetch("/api/survey-rules", { cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]) });
+        if (!response.ok) throw new Error("Rules unavailable");
+        const rules = readSurveyRules((await response.json()).rules);
+        if (!rules) throw new Error("Invalid rules");
+        if (!stopped) setSurveyRules(rules);
+      } catch { /* Keep the last known rules; the submission API validates current rules. */ }
+      finally { inFlight = false; }
+    }
+    if (!initialWeather?.rules || rulesRetry > 0) void refresh();
+    const timer = window.setInterval(() => void refresh(), 30000);
+    const resume = () => void refresh();
+    window.addEventListener("focus", resume);
+    document.addEventListener("visibilitychange", resume);
+    return () => { stopped = true; controller.abort(); clearInterval(timer); window.removeEventListener("focus", resume); document.removeEventListener("visibilitychange", resume); };
+  }, [initialWeather, rulesRetry]);
+
+  useEffect(() => {
+    const sync = () => setPrizeState(readPrizeState());
+    sync();
+    const onStorage = (event: StorageEvent) => { if (event.key === PRIZE_STORAGE_KEY || event.key === null) sync(); };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", sync);
+    return () => { window.removeEventListener("storage", onStorage); window.removeEventListener("focus", sync); };
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -141,6 +182,10 @@ function RallyPage() {
     if (!ready) return;
     const { id, cleanPath } = readNfcUrl(new URL(href, window.location.origin).href);
     if (id === null) return;
+    if (submissionBusyRef.current) {
+      router.history.replace(cleanPath, router.history.location.state);
+      return;
+    }
     // Observe router navigation as well as first loads; cleanup also uses its history.
     setScreen("map");
     setEarned(null);
@@ -229,10 +274,11 @@ function RallyPage() {
     focusedScreen.current = screen;
   }, [screen, ready, activeGhostId, earned]);
 
-  function finishConversation(
+  async function finishConversation(
     ghost: Ghost,
     answers: SurveyAnswers,
-  ): Record<string, string> {
+  ): Promise<Record<string, string>> {
+    if (submissionBusyRef.current) return { form: "保存中です。少し待ってください。" };
     const current = progressRef.current;
     if (!canOpenGhost(current, ghost.id))
       return { form: "まずは いいおばけと なかよくなろう！" };
@@ -243,6 +289,31 @@ function RallyPage() {
     let next: Progress;
     if (ghost.type === "good") next = recordGoodConversation(current, ghost.id);
     else {
+      if (!surveyRules) return { form: "質問の設定を取得できません。「質問の設定を再取得」を押してから再試行してください。" };
+      if (!isSurveyId(ghost.id)) return { form: "おばけを確認してください。" };
+      const pending = pendingAnswers(ghost.id);
+      const checked = validateRequiredAnswers(ghost.id, pending ?? answers, surveyRules);
+      if (!pending && Object.keys(checked.errors).length) return checked.errors;
+      answers = pending ?? checked.answers;
+      submissionBusyRef.current = true;
+      setSubmissionBusy(true);
+      storeDraft(ghost.id, checked.answers);
+      try {
+        const id = participantId();
+        retainSubmission(ghost.id, answers);
+        const response = await fetch("/api/survey-responses", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ participantId: id, ghostId: ghost.id, version: 2, answers }),
+          signal: AbortSignal.timeout(15000),
+        });
+        const data = await response.json();
+        if (response.status === 400) clearSubmission(ghost.id);
+        if (data.rules) { const rules = readSurveyRules(data.rules); if (rules) setSurveyRules(rules); }
+        if (!response.ok || data.saved !== true || data.ghostId !== ghost.id)
+          return data.errors ?? { form: data.error ?? "回答を保存できませんでした。回答を保持しています。もう一度送信してください。" };
+      } catch {
+        return { form: "回答を保存できませんでした。回答を保持しています。接続を確認して、もう一度送信してください。" };
+      } finally { submissionBusyRef.current = false; setSubmissionBusy(false); }
       const result = completeBadConversation(current, ghost.id, answers);
       if (Object.keys(result.errors).length) return result.errors;
       next = result.progress;
@@ -256,6 +327,9 @@ function RallyPage() {
     setActiveGhostId(null);
     setEarned({ ghost, nextScreen });
     delete drafts.current[ghost.id];
+    if (isSurveyId(ghost.id) && isGhostComplete(loadProgress().progress, ghost.id)) {
+      clearDraft(ghost.id); clearSubmission(ghost.id);
+    }
     return {};
   }
 
@@ -449,9 +523,11 @@ function RallyPage() {
 
       {(screen === "ending" || screen === "prize") && complete && (
         <section className="flow-panel ending-panel">
-          <p className="label">コンプリート！</p>
+          <p className="label">{prizeState.received ? "受取済み" : "コンプリート！"}</p>
           {heading(
-            screen === "ending"
+            prizeState.received
+              ? "プレゼントは受け取り済みです"
+              : screen === "ending"
               ? "全部のおばけと なかよくなれたよ！"
               : "景品受け取り場所に 行って、この画面を みせてね！",
           )}
@@ -459,20 +535,31 @@ function RallyPage() {
             ✦
           </div>
           <p>
-            {screen === "ending"
+            {prizeState.received
+              ? "景品の引き換えは完了しています。もう一度引き換えることはできません。"
+              : screen === "ending"
               ? "コンプリート おめでとう！景品受け取り場所に 行って、この画面を みせてね！"
               : "プレゼントは景品受け取り場所の人から受け取ってね。"}
           </p>
-          <p className="prize-location">景品受け取り場所：{prizeLocation.location}</p>
+          {!prizeState.received && <p className="prize-location">景品受け取り場所：{prizeLocation.location}</p>}
           <p>
             いいおばけ {goodGhosts.length} / {goodGhosts.length} ・
             あやしいおばけ {badGhosts.length} / {badGhosts.length}
           </p>
-          {screen === "ending" && (
+          {!prizeState.received && screen === "ending" && (
             <button className="action" onClick={() => setScreen("prize")}>
               景品受け取り場所で プレゼントをもらう
             </button>
           )}
+          {!prizeState.received && screen === "prize" && (
+            <button className="action" onClick={() => {
+              const current = readPrizeState();
+              if (current.received) { setPrizeState(current); return; }
+              if (!window.confirm("スタッフの方へ：景品の受け取りを完了します。完了後は取り消せず、引き換え画面は再表示できません。受取済みにしてよろしいですか？")) return;
+              setPrizeState(receivePrize(progressRef.current));
+            }}>受け取りを完了する（スタッフ用）</button>
+          )}
+          {prizeState.error && <p role="alert">受取済みの記録を読み書きできません。引き換えを確定せず、端末の保存設定を確認してください。</p>}
           <button className="text-button" onClick={() => setScreen("map")}>
             マップ・ずかんにもどる
           </button>
@@ -484,12 +571,16 @@ function RallyPage() {
           key={activeGhost.id}
           ghost={activeGhost}
           done={isGhostComplete(progress, activeGhost.id)}
-          draft={drafts.current[activeGhost.id] || emptyDraft}
+          draft={drafts.current[activeGhost.id] || (isSurveyId(activeGhost.id) ? readDraft(activeGhost.id) : emptyDraft)}
+          rules={surveyRules}
+          busy={submissionBusy}
+          onReloadRules={() => setRulesRetry((count) => count + 1)}
           onDraft={(answers) => {
             drafts.current[activeGhost.id] = answers;
+            if (isSurveyId(activeGhost.id)) storeDraft(activeGhost.id, answers);
           }}
           onFinish={(answers) => finishConversation(activeGhost, answers)}
-          onClose={() => setActiveGhostId(null)}
+          onClose={() => { if (!submissionBusyRef.current) setActiveGhostId(null); }}
           storageNotice={storageNotice}
         />
       )}

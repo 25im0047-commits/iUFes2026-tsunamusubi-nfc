@@ -7,7 +7,10 @@ export const getInitialWeather = createServerFn({ method: "GET" }).handler(async
   let db: ReturnType<typeof getDatabase> | undefined;
   try {
     db = getDatabase();
-    return await readWeather(db);
+    const { getSurveyRules } = await import("../server/surveys.server");
+    // A settings outage must not hide an otherwise valid venue map.
+    const [weather, rules] = await Promise.all([readWeather(db), getSurveyRules(db).catch(() => null)]);
+    return { ...weather, rules };
   } catch {
     return null;
   } finally {

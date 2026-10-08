@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { Ghost } from "../lib/rally";
+import type { SurveyRules } from "../lib/survey-rules";
+import { pendingAnswers } from "../lib/participant";
 import { PartyEffects, PartyWords } from "./PartyEffects";
 import { FoundStage } from "./FoundEffects";
 import {
@@ -21,11 +23,13 @@ export function Dialog({
   onClose,
   children,
   className = "",
+  busy = false,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   className?: string;
+  busy?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -50,7 +54,7 @@ export function Dialog({
       aria-labelledby={headingId}
       onCancel={(event) => {
         event.preventDefault();
-        onClose();
+        if (!busy) onClose();
       }}
     >
       {className !== "earned-dialog" && <PartyEffects contained spooky={className === "bad"} />}
@@ -59,6 +63,7 @@ export function Dialog({
         type="button"
         onClick={onClose}
         aria-label="閉じる"
+        disabled={busy}
       >
         ×
       </button>
@@ -110,17 +115,23 @@ export function GhostDialog({
   onFinish,
   onClose,
   storageNotice,
+  rules,
+  busy,
+  onReloadRules,
 }: {
   ghost: Ghost;
   done: boolean;
   draft: SurveyAnswers;
   onDraft: (answers: SurveyAnswers) => void;
-  onFinish: (answers: SurveyAnswers) => Record<string, string>;
+  onFinish: (answers: SurveyAnswers) => Promise<Record<string, string>>;
   onClose: () => void;
   storageNotice: ReactNode;
+  rules: SurveyRules | null;
+  busy: boolean;
+  onReloadRules: () => void;
 }) {
   return (
-    <Dialog title={ghost.name} onClose={onClose} className={ghost.type}>
+    <Dialog title={ghost.name} onClose={onClose} className={ghost.type} busy={busy}>
       {storageNotice}
       <div className="dialog-ghost">
         <GhostImage ghost={ghost} />
@@ -144,6 +155,9 @@ export function GhostDialog({
           draft={draft}
           onDraft={onDraft}
           onFinish={onFinish}
+          rules={rules}
+          busy={busy}
+          onReloadRules={onReloadRules}
         />
       ) : (
         <>
@@ -168,16 +182,23 @@ function SurveyForm({
   draft: initialDraft,
   onDraft,
   onFinish,
+  rules,
+  busy,
+  onReloadRules,
 }: {
   id: SurveyId;
   draft: SurveyAnswers;
   onDraft: (answers: SurveyAnswers) => void;
-  onFinish: (answers: SurveyAnswers) => Record<string, string>;
+  onFinish: (answers: SurveyAnswers) => Promise<Record<string, string>>;
+  rules: SurveyRules | null;
+  busy: boolean;
+  onReloadRules: () => void;
 }) {
   const [draft, setDraft] = useState(initialDraft);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const errorRef = useRef<HTMLParagraphElement>(null);
   const definition = surveys[id];
+  const pending = pendingAnswers(id) !== null;
   function update(question: string, value: SurveyAnswers[string]) {
     const nextDraft = { ...draft, [question]: value };
     setDraft(nextDraft);
@@ -191,21 +212,22 @@ function SurveyForm({
   return (
     <form
       className="survey"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        const nextErrors = onFinish(draft);
+        const nextErrors = await onFinish(draft);
         setErrors(nextErrors);
         if (Object.keys(nextErrors).length)
           requestAnimationFrame(() => errorRef.current?.focus());
       }}
     >
       <p className="survey-help">
-        ぜんぶ任意です。こたえたいものだけで
-        だいじょうぶ。空らんでもスタンプはもらえるよ！
+        「必須」の質問に回答してね。回答の保存が完了するとスタンプがつくよ。
       </p>
       <p className="prototype-note">
-        動作確認用：回答はこの端末に保存されます。運営には送信されません。
+        回答は運営のデータベースに送信・保存されます。下書きはこの端末に保持されます。
       </p>
+      {!rules && <p role="alert">質問の設定を取得できていません。<button type="button" onClick={onReloadRules}>設定を再取得</button></p>}
+      {pending && <p role="status">保存結果を確認中です。回答は変更せず、下のボタンから同じ内容を再送してください。</p>}
       <p className="survey-help">
         名前・連絡先など、個人がわかることは書かないでね。
       </p>
@@ -222,12 +244,13 @@ function SurveyForm({
         return (
           <fieldset
             key={question.id}
+            disabled={busy || pending || !rules}
             aria-describedby={errors[question.id] ? errorId : undefined}
           >
             <legend>
               Q{index + 1}. {question.label}{" "}
               <small>
-                任意{question.kind === "multiple" ? "・複数選択可" : ""}
+                {rules?.[id][question.id] !== false ? "必須" : "任意"}{question.kind === "multiple" ? "・複数選択可" : ""}
               </small>
             </legend>
             {question.kind === "text" ? (
@@ -292,7 +315,7 @@ function SurveyForm({
                     </label>
                   ))}
                 </div>
-                {question.kind !== "multiple" && (
+                {question.kind !== "multiple" && rules?.[id][question.id] === false && (
                   <label className="skip-answer">
                     <input
                       type="radio"
@@ -316,8 +339,8 @@ function SurveyForm({
       <p className="survey-help">
         下のボタンで会話を終えると、スタンプがつきます。
       </p>
-      <button className="action bad-action" type="submit">
-        {definition.button}
+      <button className="action bad-action" type="submit" disabled={busy || !rules}>
+        {busy ? "回答を保存中…" : definition.button}
       </button>
     </form>
   );

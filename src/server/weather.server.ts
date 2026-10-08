@@ -48,21 +48,10 @@ export async function weatherResponse(request: Request, admin: boolean, supplied
   }
   let db: Client | undefined;
   try {
-    // Bound every credential attempt before checking it, across function instances.
     if (admin) {
-      if (!request.headers.has("authorization")) return json({ error: "管理用ID・パスワードを確認してください。" }, 401);
       db = suppliedDb ?? getDatabase();
-      const now = Math.floor(Date.now() / 1000);
-      // A bounded shared bucket survives Vercel function restarts; never store passwords or IPs.
-      const bucket = String(Math.floor(now / 60));
-      const result = await db.execute({
-        sql: "INSERT INTO iufes2026_admin_limits (bucket, attempts, expires) VALUES (?, 1, ?) ON CONFLICT(bucket) DO UPDATE SET attempts = attempts + 1 RETURNING attempts",
-        args: [bucket, now + 120],
-      });
-      await db.execute({ sql: "DELETE FROM iufes2026_admin_limits WHERE expires < ?", args: [now] });
-      if (Number(result.rows[0].attempts) > 20)
-        return json({ error: "試行が多すぎます。1分ほど待ってください。" }, 429, { "Retry-After": "60" });
-      if (!authorized(request)) return json({ error: "管理用ID・パスワードを確認してください。" }, 401);
+      const denied = await requireAdmin(request, db);
+      if (denied) return denied;
     }
     db ??= suppliedDb ?? getDatabase();
     if (request.method === "PUT") {
@@ -78,4 +67,22 @@ export async function weatherResponse(request: Request, admin: boolean, supplied
   } catch {
     return json({ error: "配置設定を読み書きできません。時間をおいて再試行してください。" }, 503);
   } finally { if (!suppliedDb) db?.close(); }
+}
+
+export async function requireAdmin(request: Request, db: Client): Promise<Response | undefined> {
+  if (!process.env.ADMIN_USER || !process.env.ADMIN_PASSWORD) return json({ error: "管理者の環境変数が未設定です。" }, 503);
+  if (request.method !== "GET" && request.headers.get("origin") !== new URL(request.url).origin)
+    return json({ error: "許可されていないアクセスです。" }, 403);
+  if (!request.headers.has("authorization")) return json({ error: "管理用ID・パスワードを確認してください。" }, 401);
+  const now = Math.floor(Date.now() / 1000);
+  // A bounded shared bucket survives Vercel function restarts; never store passwords or IPs.
+  const bucket = String(Math.floor(now / 60));
+  const result = await db.execute({
+    sql: "INSERT INTO iufes2026_admin_limits (bucket, attempts, expires) VALUES (?, 1, ?) ON CONFLICT(bucket) DO UPDATE SET attempts = attempts + 1 RETURNING attempts",
+    args: [bucket, now + 120],
+  });
+  await db.execute({ sql: "DELETE FROM iufes2026_admin_limits WHERE expires < ?", args: [now] });
+  if (Number(result.rows[0].attempts) > 20)
+    return json({ error: "試行が多すぎます。1分ほど待ってください。" }, 429, { "Retry-After": "60" });
+  if (!authorized(request)) return json({ error: "管理用ID・パスワードを確認してください。" }, 401);
 }

@@ -289,7 +289,8 @@ test("failed survey writes keep answers until storage retry succeeds", async ({
       window as typeof window & { restoreRallyStorage: () => void }
     ).restoreRallyStorage(),
   );
-  await page.getByRole("button", { name: "進捗の保存を再試行" }).click();
+  await page.getByRole("button", { name: "ヴァンパイアに ほうこくする！" }).click();
+  await page.getByRole("button", { name: "マップにもどる", exact: true }).click();
   await expect(page.getByRole("alert")).toHaveCount(0);
   await page.reload();
   await expect(
@@ -320,6 +321,7 @@ test("another NFC tab unlocks the original map and updates its ending", async ({
     page.getByRole("button", { name: `${lastGoodGhost.name}は未発見` }),
   ).toBeDisabled();
   const tag = await context.newPage();
+  await mockWeather(tag);
   await tag.goto(`/?id=${lastGoodGhost.id}`);
   await tag.getByRole("button", { name: "会話を終えてスタンプを獲得" }).click();
   await expect(
@@ -332,6 +334,7 @@ test("another NFC tab unlocks the original map and updates its ending", async ({
   await tag
     .getByRole("button", { name: "メデューサを げんきづける！" })
     .click();
+  await expect(tag.locator(".earned-dialog")).toBeVisible();
   await tag.goto("/?id=bad-02");
   await tag
     .getByRole("button", { name: "ヴァンパイアに ほうこくする！" })
@@ -349,6 +352,7 @@ test("tab sync preserves drafts and unsaved answers through retry", async ({
   await page.goto("/?id=bad-02");
   await page.getByRole("textbox").first().fill("同期しても残る感想");
   const tag = await context.newPage();
+  await mockWeather(tag);
   await tag.goto("/?id=bad-01");
   await tag.getByRole("radio", { name: "0点", exact: true }).check();
   await tag
@@ -381,7 +385,7 @@ test("tab sync preserves drafts and unsaved answers through retry", async ({
       window as typeof window & { restoreRallyStorage: () => void }
     ).restoreRallyStorage(),
   );
-  await page.getByRole("button", { name: "進捗の保存を再試行" }).click();
+  await page.getByRole("button", { name: "ヴァンパイアに ほうこくする！" }).click();
   await page.getByRole("button", { name: "コンプリート画面へ！" }).click();
   await page.reload();
   await expect(
@@ -533,6 +537,7 @@ test("earned card follows completion synced from another tab", async ({
       .getByRole("button", { name: "マップにもどる", exact: true }),
   ).toBeVisible();
   const tag = await context.newPage();
+  await mockWeather(tag);
   await tag.goto("/?id=bad-02");
   await tag
     .getByRole("button", { name: "ヴァンパイアに ほうこくする！" })

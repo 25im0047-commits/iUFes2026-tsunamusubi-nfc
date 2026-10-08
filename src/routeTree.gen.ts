@@ -11,7 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ApiSurveyResponsesRouteImport } from './routes/api.survey-responses'
+import { Route as ApiSurveyRulesRouteImport } from './routes/api.survey-rules'
 import { Route as ApiWeatherRouteImport } from './routes/api.weather'
+import { Route as ApiAdminSurveyResponsesRouteImport } from './routes/api.admin.survey-responses'
+import { Route as ApiAdminSurveyRulesRouteImport } from './routes/api.admin.survey-rules'
 import { Route as ApiAdminWeatherRouteImport } from './routes/api.admin.weather'
 
 const IndexRoute = IndexRouteImport.update({
@@ -24,9 +28,29 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSurveyResponsesRoute = ApiSurveyResponsesRouteImport.update({
+  id: '/api/survey-responses',
+  path: '/api/survey-responses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSurveyRulesRoute = ApiSurveyRulesRouteImport.update({
+  id: '/api/survey-rules',
+  path: '/api/survey-rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWeatherRoute = ApiWeatherRouteImport.update({
   id: '/api/weather',
   path: '/api/weather',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSurveyResponsesRoute = ApiAdminSurveyResponsesRouteImport.update({
+  id: '/api/admin/survey-responses',
+  path: '/api/admin/survey-responses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSurveyRulesRoute = ApiAdminSurveyRulesRouteImport.update({
+  id: '/api/admin/survey-rules',
+  path: '/api/admin/survey-rules',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminWeatherRoute = ApiAdminWeatherRouteImport.update({
@@ -38,34 +62,75 @@ const ApiAdminWeatherRoute = ApiAdminWeatherRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/api/survey-responses': typeof ApiSurveyResponsesRoute
+  '/api/survey-rules': typeof ApiSurveyRulesRoute
   '/api/weather': typeof ApiWeatherRoute
+  '/api/admin/survey-responses': typeof ApiAdminSurveyResponsesRoute
+  '/api/admin/survey-rules': typeof ApiAdminSurveyRulesRoute
   '/api/admin/weather': typeof ApiAdminWeatherRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/api/survey-responses': typeof ApiSurveyResponsesRoute
+  '/api/survey-rules': typeof ApiSurveyRulesRoute
   '/api/weather': typeof ApiWeatherRoute
+  '/api/admin/survey-responses': typeof ApiAdminSurveyResponsesRoute
+  '/api/admin/survey-rules': typeof ApiAdminSurveyRulesRoute
   '/api/admin/weather': typeof ApiAdminWeatherRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/api/survey-responses': typeof ApiSurveyResponsesRoute
+  '/api/survey-rules': typeof ApiSurveyRulesRoute
   '/api/weather': typeof ApiWeatherRoute
+  '/api/admin/survey-responses': typeof ApiAdminSurveyResponsesRoute
+  '/api/admin/survey-rules': typeof ApiAdminSurveyRulesRoute
   '/api/admin/weather': typeof ApiAdminWeatherRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/api/weather' | '/api/admin/weather'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/api/survey-responses'
+    | '/api/survey-rules'
+    | '/api/weather'
+    | '/api/admin/survey-responses'
+    | '/api/admin/survey-rules'
+    | '/api/admin/weather'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/api/weather' | '/api/admin/weather'
-  id: '__root__' | '/' | '/admin' | '/api/weather' | '/api/admin/weather'
+  to:
+    | '/'
+    | '/admin'
+    | '/api/survey-responses'
+    | '/api/survey-rules'
+    | '/api/weather'
+    | '/api/admin/survey-responses'
+    | '/api/admin/survey-rules'
+    | '/api/admin/weather'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/api/survey-responses'
+    | '/api/survey-rules'
+    | '/api/weather'
+    | '/api/admin/survey-responses'
+    | '/api/admin/survey-rules'
+    | '/api/admin/weather'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  ApiSurveyResponsesRoute: typeof ApiSurveyResponsesRoute
+  ApiSurveyRulesRoute: typeof ApiSurveyRulesRoute
   ApiWeatherRoute: typeof ApiWeatherRoute
+  ApiAdminSurveyResponsesRoute: typeof ApiAdminSurveyResponsesRoute
+  ApiAdminSurveyRulesRoute: typeof ApiAdminSurveyRulesRoute
   ApiAdminWeatherRoute: typeof ApiAdminWeatherRoute
 }
 
@@ -85,11 +150,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/survey-responses': {
+      id: '/api/survey-responses'
+      path: '/api/survey-responses'
+      fullPath: '/api/survey-responses'
+      preLoaderRoute: typeof ApiSurveyResponsesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/survey-rules': {
+      id: '/api/survey-rules'
+      path: '/api/survey-rules'
+      fullPath: '/api/survey-rules'
+      preLoaderRoute: typeof ApiSurveyRulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/weather': {
       id: '/api/weather'
       path: '/api/weather'
       fullPath: '/api/weather'
       preLoaderRoute: typeof ApiWeatherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/survey-responses': {
+      id: '/api/admin/survey-responses'
+      path: '/api/admin/survey-responses'
+      fullPath: '/api/admin/survey-responses'
+      preLoaderRoute: typeof ApiAdminSurveyResponsesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/survey-rules': {
+      id: '/api/admin/survey-rules'
+      path: '/api/admin/survey-rules'
+      fullPath: '/api/admin/survey-rules'
+      preLoaderRoute: typeof ApiAdminSurveyRulesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/weather': {
@@ -105,7 +198,11 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  ApiSurveyResponsesRoute: ApiSurveyResponsesRoute,
+  ApiSurveyRulesRoute: ApiSurveyRulesRoute,
   ApiWeatherRoute: ApiWeatherRoute,
+  ApiAdminSurveyResponsesRoute: ApiAdminSurveyResponsesRoute,
+  ApiAdminSurveyRulesRoute: ApiAdminSurveyRulesRoute,
   ApiAdminWeatherRoute: ApiAdminWeatherRoute,
 }
 export const routeTree = rootRouteImport

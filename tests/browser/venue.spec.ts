@@ -92,9 +92,5 @@ test("weather failure never fabricates an initial map and retry recovers",async(
 test("outdoor tab does not repeat the cats or render a second location list",async({page})=>{
  await mockWeather(page);
  await start(page);
- await venue(page).getByRole("button",{name:"屋外",exact:true}).click();
- await expect(venue(page).getByText("屋外の設置場所は1Fマップにまとめて表示しています。",{exact:true})).toBeVisible();
- await expect(venue(page).locator(".venue-outdoor-cards, .venue-locations, .venue-empty")).toHaveCount(0);
- for(const ghost of goodGhosts.slice(0,4))
-  await expect(venue(page).getByText(ghost.name,{exact:true})).toHaveCount(0);
+ await expect(venue(page).getByRole("button",{name:"屋外",exact:true})).toHaveCount(0);
 });
