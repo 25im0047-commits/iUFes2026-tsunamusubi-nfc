@@ -142,7 +142,7 @@ async function earnStamp(page: Page, artwork: Artwork) {
     await page.getByRole("button", { name: "マップ・ずかんにもどる" }).click();
   }
   const card = page.getByRole("button", { name: `${ghost.name}ともう一度話す`, exact: true });
-  await expectArtwork(card.locator(".stamp-art .ghost-artwork"), stampSrc(artwork));
+  await expectArtwork(card.locator(".stamp-art .ghost-artwork"), characterSrc(artwork));
 }
 
 async function reopenConversation(page: Page, artwork: Artwork, repetitions = 1) {
@@ -157,7 +157,7 @@ async function reopenConversation(page: Page, artwork: Artwork, repetitions = 1)
     await expect(conversation.locator("form")).toHaveCount(0);
     await conversation.getByRole("button", { name: "閉じる", exact: true }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expectArtwork(card.locator(".stamp-art .ghost-artwork"), stampSrc(artwork));
+    await expectArtwork(card.locator(".stamp-art .ghost-artwork"), characterSrc(artwork));
     expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBe(saved);
   }
 }
@@ -201,7 +201,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     await expectConcealedCards(page);
     for (const artwork of artworks.slice(0, 8)) {
       const ghost = getGhost(artwork.id)!;
-      await expectArtwork(page.getByRole("button", { name: `${ghost.name}ともう一度話す`, exact: true }).locator(".stamp-art .ghost-artwork"), stampSrc(artwork));
+      await expectArtwork(page.getByRole("button", { name: `${ghost.name}ともう一度話す`, exact: true }).locator(".stamp-art .ghost-artwork"), characterSrc(artwork));
     }
     for (const artwork of artworks.slice(8)) {
       await earnStamp(page, artwork);

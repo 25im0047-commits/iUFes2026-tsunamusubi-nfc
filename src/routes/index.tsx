@@ -594,7 +594,7 @@ function StatusRow({
       }
     >
       <div className="stamp-art">
-        <GhostImage ghost={ghost} variant="stamp" concealed={!done} />
+        <GhostImage ghost={ghost} variant="character" concealed={!done} />
       </div>
       <div className="stamp-meta">
         <strong>NO.{String(number).padStart(3, "0")}</strong>

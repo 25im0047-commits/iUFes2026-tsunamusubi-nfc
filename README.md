@@ -56,7 +56,7 @@ VercelのProductionに `TURSO_DATABASE_URL`・`TURSO_AUTH_TOKEN`・`ADMIN_USER`�
 
 10月5日10:58 JSTに狩俣ひよりさんが[通常絵とスタンプ絵を共有](https://iu-people.slack.com/archives/C0BPYFKPZFA/p1791165519921949)しました。通常絵は `public/ghosts/characters/<slug>.png`、スタンプ絵は `public/ghosts/stamps/<slug>.png` に置きます。各11枚、原本は354 × 472pxの透明RGBA PNGです。
 
-会話・タイトル・悪いおばけの解放には通常絵、取得演出と獲得済み図鑑にはスタンプ絵を使います。未発見の図鑑はCSSによる仮表示を維持します。画像参照と表示範囲は `src/lib/artwork.ts` で定義します。
+会話・タイトル・悪いおばけの解放・獲得済み図鑑には背景透過の通常絵、取得演出にはスタンプ絵を使います。未発見の図鑑はCSSによる仮表示を維持します。画像参照と表示範囲は `src/lib/artwork.ts` で定義します。
 
 PNG原本は加工せず保持します。`src/lib/artwork.ts` に、アルファ値が0ではない画素の外接矩形へ8pxの余白を加えたSVGの `viewBox` を登録し、透明な余白による表示サイズの違いを調整します。通常絵とスタンプ絵はそれぞれの表示範囲を使います。
 
