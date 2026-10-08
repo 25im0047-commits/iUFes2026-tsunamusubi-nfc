@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockWeather } from "./weather-helper";
+test.beforeEach(async ({ page }) => { await mockWeather(page); });
 import { emptyProgress, goodGhosts, STORAGE_KEY } from "../../src/lib/rally";
 
 // Pointer input deliberately follows the visible moving target; locator.click

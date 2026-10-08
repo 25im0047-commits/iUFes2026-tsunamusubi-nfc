@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockWeather } from "./weather-helper";
+test.beforeEach(async ({ page }) => { await mockWeather(page); });
 import {
   STORAGE_KEY,
   LEGACY_STORAGE_KEY,
@@ -12,12 +14,12 @@ const lastGoodGhost = goodGhosts.at(-1)!;
 
 test("NFC navigation in an already open page opens the conversation and clears stale errors", async ({ page }) => {
   await page.goto("/?id=unknown");
-  await expect(page.getByRole("status")).toContainText("このおばけは見つかりませんでした");
+  await expect(page.locator('.message[role="status"]')).toContainText("このおばけは見つかりませんでした");
   // Reuse the same React page rather than reloading the document for every tag.
   await page.evaluate(() => history.pushState(history.state, "", "/?id=good-01&source=nfc#ghost-book"));
   await expect(page.getByRole("dialog")).toHaveAccessibleName(firstGoodGhost.name);
   await expect(page).toHaveURL(/\/\?source=nfc#ghost-book$/);
-  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(page.locator('.message[role="status"]')).toHaveCount(0);
   await page.getByRole("button", { name: "会話を終えてスタンプを獲得", exact: true }).click();
   await page.getByRole("button", { name: "マップにもどる", exact: true }).click();
   await expect(page.getByRole("progressbar", { name: "いいおばけのスタンプ取得数" })).toHaveAttribute("aria-valuenow", "1");
@@ -34,13 +36,14 @@ test("map and collection shortcuts keep the rally progress and weather intact", 
   await page.goto("/?id=good-01");
   await page.getByRole("button", { name: "会話を終えてスタンプを獲得", exact: true }).click();
   await page.getByRole("button", { name: "マップにもどる", exact: true }).click();
-  await page.getByRole("radio", { name: "雨天", exact: true }).check();
+  const changeWeather = await mockWeather(page);
+  await changeWeather("rainy");
   const saved = await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY);
   await page.getByRole("link", { name: "おばけずかん", exact: true }).click();
   await expect(page.locator("#ghost-book")).toBeInViewport();
   await page.getByRole("link", { name: "会場マップ", exact: true }).click();
   await expect(page.locator("#venue-heading")).toBeInViewport();
-  await expect(page.getByRole("radio", { name: "雨天", exact: true })).toBeChecked();
+  await expect(page.locator(".venue-weather-help")).toContainText("雨天");
   expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBe(saved);
 });
 
@@ -181,10 +184,10 @@ test("participant flow preserves NFC parameters, gates surveys and completes wit
   await page.getByRole("button", { name: "ぼうけんを はじめる！" }).click();
   await page.getByRole("button", { name: "マップを みる！" }).click();
   await page.goto("/?id=bad-01");
-  await expect(page.getByRole("status")).toContainText("まずは いいおばけ全員");
+  await expect(page.locator('.message[role="status"]')).toContainText("まずは いいおばけ全員");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.goto("/?id=unknown");
-  await expect(page.getByRole("status")).toContainText(
+  await expect(page.locator('.message[role="status"]')).toContainText(
     "このおばけは見つかりませんでした",
   );
   await page.goto("/?id=good-01&source=test#map");

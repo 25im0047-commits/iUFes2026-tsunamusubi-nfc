@@ -14,7 +14,8 @@
 .venue-scroll { overflow-x: auto; border: 0; border-radius: 20px; background: #fff; box-shadow: var(--shadow); }
 .venue-plan { position: relative; width: 100%; min-width: 680px; overflow: hidden; }
 .venue-base { display: block; width: 100%; height: auto; }
-.venue-plan-sunny { background: #090610; }
+.venue-source-mask { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.venue-plan-sunny { background: #000; }
 .venue-marker.sunny-marker { width: 5.2%; aspect-ratio: 1; }
 .venue-ghost-art, .venue-prize-art { display: block; width: 100%; height: 100%; overflow: visible; }
 .venue-round-art { clip-path: circle(44.5% at 50% 50%); }

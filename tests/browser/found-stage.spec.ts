@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { mockWeather } from "./weather-helper";
+test.beforeEach(async ({ page }) => { await mockWeather(page); });
 
 for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 720 }]) {
   test(`acquisition covers the viewport throughout zoom at ${viewport.width}x${viewport.height}`, async ({ page }, testInfo) => {

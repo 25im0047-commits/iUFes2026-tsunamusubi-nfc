@@ -39,3 +39,22 @@ test("unknown routes return the application's 404", async () => {
   assert.equal(response.status, 404);
   assert.match(await response.text(), /<title>iUFes2026 おばけMap<\/title>/);
 });
+
+test("admin page is server-rendered without publishing credentials", async () => {
+  const response = await handler.fetch(new Request("https://rally.example/admin"));
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /会場配置の管理/);
+  assert.match(html, /type="password"/);
+  assert.doesNotMatch(html, /TURSO_AUTH_TOKEN|ADMIN_PASSWORD/);
+});
+
+test("weather endpoints are API responses and fail closed without environment setup", async () => {
+  for (const path of ["/api/weather", "/api/admin/weather"]) {
+    const response = await handler.fetch(new Request("https://rally.example" + path));
+    assert.equal(response.status, 503);
+    assert.match(response.headers.get("content-type"), /application\/json/);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.ok((await response.json()).error);
+  }
+});

@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockWeather } from "./weather-helper";
+test.beforeEach(async ({ page }) => { await mockWeather(page); });
 
 async function startMap(page: Page) {
   await page.goto("/");

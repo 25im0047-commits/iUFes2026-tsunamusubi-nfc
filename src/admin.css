@@ -1,0 +1,17 @@
+.admin-page { min-height: 100dvh; max-width: 800px; margin: 0 auto; padding: 28px 18px; color: #fff; font-family: "Zen Maru Gothic", sans-serif; }
+.admin-page > a { color: #fff; }
+.admin-card { margin-top: 24px; padding: clamp(20px, 5vw, 36px); border-radius: 26px; background: #fff8ec; color: #2b1060; box-shadow: 0 16px 40px #15002b55; }
+.admin-label { color: #7645ac; font-weight: 800; }
+.admin-card h1 { font-size: clamp(25px, 6vw, 34px); }
+.admin-card form { display: grid; gap: 18px; margin-top: 24px; }
+.admin-card label { display: grid; gap: 8px; font-weight: 800; }
+.admin-card input:not([type="radio"]) { width: 100%; box-sizing: border-box; border: 2px solid #cdb6df; border-radius: 12px; padding: 12px; font: inherit; background: #fff; color: #2b1060; }
+.admin-card fieldset { display: flex; gap: 24px; border: 2px solid #cdb6df; border-radius: 14px; padding: 16px; }
+.admin-card .admin-option { display: flex; align-items: center; gap: 8px; }
+.admin-card input[type="radio"] { width: 20px; height: 20px; accent-color: #b82775; }
+.admin-card button { border: 0; border-radius: 14px; padding: 14px 18px; font: inherit; font-weight: 900; background: #ac236c; color: #fff; cursor: pointer; }
+.admin-card .admin-logout { background: #ede0f3; color: #2b1060; }
+.admin-card button:disabled { opacity: .6; cursor: wait; }
+.admin-card :focus-visible { outline: 3px solid #7439c6; outline-offset: 3px; }
+.admin-preview { width: 100%; border-radius: 12px; background: #000; }
+.admin-error { color: #ae1740; font-weight: 800; }

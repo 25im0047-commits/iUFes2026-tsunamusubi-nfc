@@ -34,7 +34,6 @@ type Screen = "title" | "help" | "map" | "unlock" | "ending" | "prize";
 type StorageIssue =
   "unavailable" | "repaired" | "migrated" | "unsaved" | "unsupported" | null;
 const emptyDraft: SurveyAnswers = {};
-const WEATHER_STORAGE_KEY = "iufes2026-system-prototype-weather";
 
 function RallyPage() {
   const router = useRouter();
@@ -45,6 +44,9 @@ function RallyPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [ready, setReady] = useState(false);
   const [weather, setWeather] = useState<WeatherMode>("sunny");
+  const [weatherReady, setWeatherReady] = useState(false);
+  const [weatherError, setWeatherError] = useState(false);
+  const [weatherRetry, setWeatherRetry] = useState(0);
   const prizeLocation = getPrizeLocation(weather);
   const [screen, setScreen] = useState<Screen>("title");
   const focusedScreen = useRef<Screen | null>(null);
@@ -63,20 +65,36 @@ function RallyPage() {
   const earnedNextScreen = complete ? "ending" : earned?.nextScreen;
 
   function ghostForWeather(ghost: Ghost): Ghost {
+    if (!weatherReady) return { ...ghost, location: "配置を確認できません。会場の案内を確認してください。" };
     const placement = getGhostPlacement(ghost.id, weather);
     return placement
       ? { ...ghost, area: placement.floor, location: placement.location }
       : ghost;
   }
 
-  function changeWeather(next: WeatherMode) {
-    setWeather(next);
-    try {
-      window.localStorage.setItem(WEATHER_STORAGE_KEY, next);
-    } catch {
-      // The selected map remains usable when storage is unavailable.
+  useEffect(() => {
+    let disposed = false;
+    let inFlight = false;
+    const controller = new AbortController();
+    async function refresh() {
+      if (inFlight || document.visibilityState === "hidden") return;
+      inFlight = true;
+      try {
+        const response = await fetch("/api/weather", { cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]) });
+        if (!response.ok) throw new Error("Weather unavailable");
+        const data = await response.json();
+        if (data.weather !== "sunny" && data.weather !== "rainy") throw new Error("Invalid weather");
+        if (!disposed) { setWeather(data.weather); setWeatherReady(true); setWeatherError(false); }
+      } catch { if (!disposed) setWeatherError(true); }
+      finally { inFlight = false; }
     }
-  }
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 30000);
+    const onResume = () => void refresh();
+    window.addEventListener("focus", onResume);
+    document.addEventListener("visibilitychange", onResume);
+    return () => { disposed = true; controller.abort(); clearInterval(timer); window.removeEventListener("focus", onResume); document.removeEventListener("visibilitychange", onResume); };
+  }, [weatherRetry]);
 
   function persistProgress(next: Progress) {
     const result = saveProgress(next);
@@ -95,12 +113,6 @@ function RallyPage() {
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
-    try {
-      if (window.localStorage.getItem(WEATHER_STORAGE_KEY) === "rainy")
-        setWeather("rainy");
-    } catch {
-      // Default to the sunny map when storage is unavailable.
-    }
     const loaded = loadProgress();
     const saved = loaded.progress;
     progressRef.current = saved;
@@ -372,7 +384,9 @@ function RallyPage() {
             ghosts={markers}
             progress={progress}
             weather={weather}
-            onWeatherChange={changeWeather}
+            weatherReady={weatherReady}
+            weatherError={weatherError}
+            onWeatherRetry={() => setWeatherRetry((count) => count + 1)}
             showPrize={complete}
           />
           <section className="panel list-panel">

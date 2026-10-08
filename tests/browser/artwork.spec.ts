@@ -1,4 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { mockWeather } from "./weather-helper";
+test.beforeEach(async ({ page }) => { await mockWeather(page); });
 import {
   STORAGE_KEY,
   emptyProgress,
