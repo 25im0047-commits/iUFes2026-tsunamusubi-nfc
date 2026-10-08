@@ -7,7 +7,7 @@ import {
   recordGoodConversation,
   type Progress,
 } from "../../src/lib/rally";
-import { getGhostPlacement, prizeLocation } from "../../src/lib/venue";
+import { getGhostPlacement, getPrizeLocation, prizeLocation } from "../../src/lib/venue";
 
 const WEATHER_STORAGE_KEY = "iufes2026-system-prototype-weather";
 const lastGoodGhost = goodGhosts.at(-1)!;
@@ -30,7 +30,7 @@ async function savedProgress(page: Page) {
   return page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY);
 }
 
-test("weather selection moves the reception cats, keeps indoor locations and survives reload", async ({ page }) => {
+test("weather selection preserves the legacy rainy map alongside the new sunny map", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "ぼうけんを はじめる！" }).click();
   await page.getByRole("button", { name: "マップを みる！" }).click();
@@ -45,10 +45,9 @@ test("weather selection moves the reception cats, keeps indoor locations and sur
 
   await venue.getByRole("button", { name: "3F", exact: true }).click();
   const indoorLocations = venue.getByRole("list", { name: "3Fのおばけの場所" });
-  const sunnyIndoorText = await indoorLocations.innerText();
-  await expect(indoorLocations).toContainText("3-10 前の給湯室");
+  await expect(indoorLocations).toContainText("左側の階段付近");
   await venue.getByRole("radio", { name: "雨天", exact: true }).check();
-  await expect(indoorLocations).toHaveText(sunnyIndoorText, { useInnerText: true });
+  await expect(indoorLocations).toContainText("3-10 前の給湯室");
   await venue.getByRole("button", { name: "1F", exact: true }).click();
   for (const ghost of goodGhosts.slice(0, 2)) {
     const placement = getGhostPlacement(ghost.id, "rainy")!;
@@ -66,7 +65,8 @@ test("weather selection moves the reception cats, keeps indoor locations and sur
   await venueMap(page).getByRole("radio", { name: "晴天", exact: true }).check();
   await page.reload();
   await expect(venueMap(page).getByRole("radio", { name: "晴天", exact: true })).toBeChecked();
-  await expect(venueMap(page).getByRole("list", { name: "1Fのおばけの場所" })).not.toContainText("黒猫");
+  await expect(venueMap(page).getByRole("list", { name: "1Fのおばけの場所" })).toContainText("黒猫");
+  await expect(venueMap(page).locator(".venue-base")).toHaveAttribute("src", "/maps/rally-map-1f-sunny-20261008.png");
 });
 
 test("nine good stamps reveal both survey ghosts and eleven stamps reveal the prize in either weather", async ({ page }) => {
@@ -126,8 +126,9 @@ test("nine good stamps reveal both survey ghosts and eleven stamps reveal the pr
   expect(completed.surveyResponses["bad-02"].answers.favorite).toBe("会場の体験が楽しかった");
   for (const weather of ["晴天", "雨天"]) {
     await venueMap(page).getByRole("radio", { name: weather, exact: true }).check();
-    await expect(venueMap(page).getByLabel(`景品受け取り場所：${prizeLocation.location}`, { exact: true })).toBeVisible();
-    await expect(venueMap(page).getByRole("list", { name: "1Fのおばけの場所" })).toContainText(prizeLocation.location);
+    const location = getPrizeLocation(weather === "晴天" ? "sunny" : "rainy");
+    await expect(venueMap(page).getByLabel(`景品受け取り場所：${location.location}`, { exact: true })).toBeVisible();
+    await expect(venueMap(page).getByRole("list", { name: "1Fのおばけの場所" })).toContainText(location.location);
     expect(await savedProgress(page)).toBe(allSaved);
   }
   await page.reload();
@@ -136,6 +137,43 @@ test("nine good stamps reveal both survey ghosts and eleven stamps reveal the pr
   await expect(venueMap(page).getByRole("radio", { name: "雨天", exact: true })).toBeChecked();
   await expect(venueMap(page).getByLabel(`景品受け取り場所：${prizeLocation.location}`, { exact: true })).toBeVisible();
   expect(await savedProgress(page)).toBe(allSaved);
+});
+
+test("supplied sunny maps show the exact floor images and gate ghost and prize artwork", async ({ page }, testInfo) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "ぼうけんを はじめる！" }).click();
+  await page.getByRole("button", { name: "マップを みる！" }).click();
+  const venue = venueMap(page);
+  await expect(venue.locator(".venue-marker.bad")).toHaveCount(0);
+  await expect(venue.locator(".venue-prize-art")).toHaveCount(0);
+  const savedBefore = await savedProgress(page);
+  for (const [floor, count] of [["1F", 4], ["2F", 2], ["3F", 3]] as const) {
+    await venue.getByRole("button", { name: floor, exact: true }).click();
+    await expect(venue.locator(".venue-base")).toHaveAttribute("src", `/maps/rally-map-${floor.toLowerCase()}-sunny-20261008.png`);
+    await expect.poll(() => venue.locator(".venue-base").evaluate(image => (image as HTMLImageElement).naturalWidth)).toBe(2000);
+    await expect(venue.locator(".venue-ghost-art")).toHaveCount(count);
+    await expect(venue.locator(".venue-label-overlay")).toHaveCount(0);
+    for (const viewport of [{ width: 1024, height: 768 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await venue.locator(".venue-scroll").screenshot({ path: testInfo.outputPath(`venue-sunny-${floor}-${viewport.width}.png`) });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    }
+  }
+  expect(await savedProgress(page)).toBe(savedBefore);
+  let completed = goodGhosts.reduce((progress, ghost) => recordGoodConversation(progress, ghost.id), emptyProgress());
+  completed = completeBadConversation(completed, "bad-01", {}).progress;
+  completed = completeBadConversation(completed, "bad-02", {}).progress;
+  await page.evaluate(({ key, progress }) => localStorage.setItem(key, JSON.stringify(progress)), { key: STORAGE_KEY, progress: completed });
+  await page.reload();
+  await page.getByRole("button", { name: "マップ・ずかんにもどる" }).click();
+  await expect(venueMap(page).locator(".venue-marker.bad")).toHaveCount(2);
+  await expect(venueMap(page).locator(".venue-prize-art image")).toHaveAttribute("href", "/maps/rally-prize-20261008.png");
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await venueMap(page).locator(".venue-scroll").screenshot({ path: testInfo.outputPath("venue-sunny-1F-complete.png") });
+  await venueMap(page).getByRole("radio", { name: "雨天", exact: true }).check();
+  await expect(venueMap(page).locator(".venue-base")).toHaveAttribute("src", "/maps/rally-map-1f-base.webp");
+  await expect(venueMap(page).locator(".venue-label-overlay")).toHaveCount(1);
+  await expect(venueMap(page).locator(".venue-prize-art")).toHaveCount(0);
 });
 
 test("venue floorplans render with corrected labels at desktop and mobile widths", async ({ page }, testInfo) => {

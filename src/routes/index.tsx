@@ -6,7 +6,7 @@ import { VenueMap } from "../components/VenueMap";
 import { RallyTitle } from "../components/RallyTitle";
 import { PartyEffects, PartyTicker, PartyWords } from "../components/PartyEffects";
 import { FoundOrbit } from "../components/FoundEffects";
-import { getGhostPlacement, prizeLocation, type WeatherMode } from "../lib/venue";
+import { getGhostPlacement, getPrizeLocation, type WeatherMode } from "../lib/venue";
 import {
   badGhosts,
   canOpenGhost,
@@ -45,6 +45,7 @@ function RallyPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [ready, setReady] = useState(false);
   const [weather, setWeather] = useState<WeatherMode>("sunny");
+  const prizeLocation = getPrizeLocation(weather);
   const [screen, setScreen] = useState<Screen>("title");
   const focusedScreen = useRef<Screen | null>(null);
   const [activeGhostId, setActiveGhostId] = useState<string | null>(null);

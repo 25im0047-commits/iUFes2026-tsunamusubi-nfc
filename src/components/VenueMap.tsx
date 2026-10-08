@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { hasAllGoodStamps, isGhostComplete, isRallyComplete, type Ghost, type Progress } from "../lib/rally";
+import { getGhostArtwork, ARTWORK_WIDTH, ARTWORK_HEIGHT } from "../lib/artwork";
 import {
   getGhostPlacement,
-  prizeLocation,
+  getPrizeLocation,
+  sunnyFloorplans,
   type VenueFloor,
   type WeatherMode,
 } from "../lib/venue";
@@ -83,7 +85,11 @@ const indoorPlans = {
 
 const floors: VenueFloor[] = ["屋外", "1F", "2F", "3F"];
 
-function Floorplan({ floor }: { floor: Exclude<VenueFloor, "屋外"> }) {
+function Floorplan({ floor, weather }: { floor: Exclude<VenueFloor, "屋外">; weather: WeatherMode }) {
+  if (weather === "sunny") {
+    const plan = sunnyFloorplans[floor];
+    return <img className="venue-base" src={plan.src} width={plan.width} height={plan.height} alt={`${floor}の会場図（晴天時）`} />;
+  }
   const plan = indoorPlans[floor];
   return (
     <>
@@ -118,11 +124,12 @@ function Floorplan({ floor }: { floor: Exclude<VenueFloor, "屋外"> }) {
 
 export function VenueMap({ ghosts, progress, weather, onWeatherChange, showPrize }: VenueMapProps) {
   const [floor, setFloor] = useState<VenueFloor>("1F");
+  const prizeLocation = getPrizeLocation(weather);
   const unlocked = hasAllGoodStamps(progress);
   const visible = ghosts
     .filter((ghost) => ghost.type === "good" || unlocked)
     .map((ghost) => ({ ghost, placement: getGhostPlacement(ghost.id, weather), number: ghosts.indexOf(ghost) + 1 }))
-    .filter((entry) => entry.placement?.floor === floor);
+    .filter(({ placement }) => floor === "屋外" ? placement?.floor === floor : (placement?.mapFloor ?? placement?.floor) === floor);
   const prizeVisible = showPrize && isRallyComplete(progress) && prizeLocation.floor === floor;
 
   return (
@@ -166,16 +173,19 @@ export function VenueMap({ ghosts, progress, weather, onWeatherChange, showPrize
         </div>
       ) : (
         <div className="venue-scroll" tabIndex={0} aria-label={`${floor}の会場図。横にスクロールできます。`}>
-          <div className="venue-plan" style={{ aspectRatio: `800 / ${indoorPlans[floor].height}` }}>
-            <Floorplan floor={floor} />
-            {visible.filter(({ placement }) => placement?.position).map(({ ghost, placement, number }) => (
-              <div className={`venue-marker ${ghost.type} ${isGhostComplete(progress, ghost.id) ? "done" : ""}`} key={ghost.id} style={placement?.position} role="img" aria-label={`${ghost.name}：${placement?.location}`}>
-                <span>{number}</span>
-              </div>
-            ))}
+          <div className={`venue-plan ${weather === "sunny" ? "venue-plan-sunny" : ""}`} style={{ aspectRatio: weather === "sunny" ? "2000 / 1414" : `800 / ${indoorPlans[floor].height}` }}>
+            <Floorplan floor={floor} weather={weather} />
+            {visible.filter(({ placement }) => placement?.position).map(({ ghost, placement, number }) => {
+              const artwork = weather === "sunny" ? getGhostArtwork(ghost.id, "stamp") : undefined;
+              return <div className={`venue-marker ${artwork ? "sunny-marker" : ""} ${ghost.type} ${isGhostComplete(progress, ghost.id) ? "done" : ""}`} key={ghost.id} style={placement?.position} role="img" aria-label={`${ghost.name}：${placement?.location}`}>
+                {artwork && <svg className={`venue-ghost-art ${["good-02", "good-05", "good-06"].includes(ghost.id) ? "venue-round-art" : ""}`} viewBox={artwork.viewBox} aria-hidden="true" focusable="false"><image href={artwork.src} width={ARTWORK_WIDTH} height={ARTWORK_HEIGHT} /></svg>}
+                <span className={artwork ? "venue-marker-number" : undefined}>{number}</span>
+              </div>;
+            })}
             {prizeVisible && (
-              <div className="venue-marker venue-prize" style={prizeLocation.position} role="img" aria-label={`景品受け取り場所：${prizeLocation.location}`}>
-                <span>★</span>
+              <div className={`venue-marker venue-prize ${weather === "sunny" ? "sunny-prize-marker" : ""}`} style={prizeLocation.position} role="img" aria-label={`景品受け取り場所：${prizeLocation.location}`}>
+                {weather === "sunny" && <svg className="venue-prize-art" viewBox="667 295 681 821" aria-hidden="true" focusable="false"><image href="/maps/rally-prize-20261008.png" width="2000" height="1414" /></svg>}
+                <span className={weather === "sunny" ? "venue-marker-number" : undefined}>★</span>
               </div>
             )}
           </div>
@@ -184,7 +194,9 @@ export function VenueMap({ ghosts, progress, weather, onWeatherChange, showPrize
       <p className="venue-map-help">
         {floor === "屋外"
           ? "屋外は目印の案内です。建物との距離や方角は会場で確認してね。"
-          : "番号は設置場所の目安です。下の場所案内と合わせて探してね。地図は横に動かせます。"}
+          : weather === "sunny" && floor === "1F"
+            ? "1F図には建物周辺の屋外のおばけも表示しています。番号と下の場所案内を合わせて探してね。地図は横に動かせます。"
+            : "番号は設置場所の目安です。下の場所案内と合わせて探してね。地図は横に動かせます。"}
         おばけとの会話は現地のNFCタグにタッチして始めよう。
       </p>
       <ol className="venue-locations" aria-label={`${floor}のおばけの場所`}>
