@@ -45,7 +45,7 @@ body::after {
   animation: glow 4s ease-in-out infinite;
 }
 #root, body > * { position: relative; z-index: 1; }
-button, input, textarea { font: inherit; }
+button, input, textarea, select, option { font: inherit; }
 h1, h2 { font-weight: 900; }
 
 /* ===== page sheet ===== */

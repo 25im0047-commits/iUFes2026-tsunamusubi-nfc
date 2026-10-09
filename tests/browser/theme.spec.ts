@@ -19,6 +19,20 @@ test("design reference palette and fonts are shared across the map and collectio
   expect(await page.evaluate(() => document.fonts.check('400 20px "Dela Gothic One"', "おばけMap"))).toBe(true);
 });
 
+test("complete fonts load Japanese headings and all body weights, including previously missing kanji",async({page})=>{
+ await page.goto("/");
+ const loaded=await page.evaluate(async()=>{
+  const text="獲得景品必須晴雨受付回答保存完了設定猫姉";
+  const checks=[];
+  for(const [family,weight] of [["Dela Gothic One",400],["Zen Maru Gothic",500],["Zen Maru Gothic",700],["Zen Maru Gothic",900]] as const){
+   const faces=await document.fonts.load(`${weight} 20px "${family}"`,text);
+   checks.push(faces.length===1 && faces[0].status==="loaded");
+  }
+  return checks;
+ });
+ expect(loaded).toEqual([true,true,true,true]);
+});
+
 test.describe("reference motion", () => {
   test.use({ reducedMotion: "no-preference" });
   test("flash, light, confetti and jumping letters remain active and the action works", async ({ page, hasTouch }, testInfo) => {
