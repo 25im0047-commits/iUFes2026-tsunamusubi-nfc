@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { mockWeather } from "./weather-helper";
 import { defaultSurveyRules } from "../../src/lib/survey-rules";
+import { defaultSurveyTexts } from "../../src/lib/survey-texts";
 import { surveys } from "../../src/lib/survey";
 import { STORAGE_KEY, emptyProgress, goodGhosts, recordGoodConversation, completeBadConversation } from "../../src/lib/rally";
 const good = () => goodGhosts.reduce((p,g) => recordGoodConversation(p,g.id), emptyProgress());
@@ -15,6 +16,7 @@ test("required questions block empty answers, failed DB retains answers and retr
  await page.addInitScript(({key,progress}) => localStorage.setItem(key,JSON.stringify(progress)),{key:STORAGE_KEY,progress:good()});
  await page.goto("/?id=bad-01");
  const dialog=page.getByRole("dialog");
+ await expect(dialog.locator(".score-help")).toHaveCSS("color","rgb(0, 0, 0)");
  await dialog.getByRole("button",{name:surveys["bad-01"].button}).click();
  await expect(dialog.getByRole("alert")).toBeVisible(); expect(attempts).toBe(0);
  for(const fieldset of await dialog.locator("fieldset").all())await fieldset.locator("input").first().check();
@@ -26,6 +28,15 @@ test("required questions block empty answers, failed DB retains answers and retr
  await expect(page.locator(".earned-dialog")).toBeVisible();
  expect(attempts).toBe(2);expect(payloads[0]).toEqual(payloads[1]);
  expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!).badStampIds,STORAGE_KEY)).toEqual(["bad-01"]);
+});
+test("participant displays shared edited question text without changing question IDs",async({page})=>{
+ await mockWeather(page);
+ const texts=defaultSurveyTexts();texts["bad-01"].visitor="あなたのことを教えてね！";
+ await page.route("**/api/survey-rules",r=>r.fulfill({json:{rules:defaultSurveyRules(),texts}}));
+ await page.addInitScript(({key,progress})=>localStorage.setItem(key,JSON.stringify(progress)),{key:STORAGE_KEY,progress:good()});
+ await page.goto("/?id=bad-01");
+ await expect(page.getByRole("dialog").locator("legend").first()).toContainText("あなたのことを教えてね！");
+ await expect(page.locator('input[name="bad-01-visitor"]').first()).toHaveAttribute("value","elementary");
 });
 test("staff cancel preserves exchange screen, confirm hides it permanently on this device",async({page})=>{
  await mockWeather(page);

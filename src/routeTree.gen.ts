@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ApiSurveyResponsesRouteImport } from './routes/api.survey-responses'
 import { Route as ApiSurveyRulesRouteImport } from './routes/api.survey-rules'
 import { Route as ApiWeatherRouteImport } from './routes/api.weather'
+import { Route as ApiAdminSurveyExportRouteImport } from './routes/api.admin.survey-export'
 import { Route as ApiAdminSurveyResponsesRouteImport } from './routes/api.admin.survey-responses'
 import { Route as ApiAdminSurveyRulesRouteImport } from './routes/api.admin.survey-rules'
 import { Route as ApiAdminWeatherRouteImport } from './routes/api.admin.weather'
@@ -43,6 +44,11 @@ const ApiWeatherRoute = ApiWeatherRouteImport.update({
   path: '/api/weather',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminSurveyExportRoute = ApiAdminSurveyExportRouteImport.update({
+  id: '/api/admin/survey-export',
+  path: '/api/admin/survey-export',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminSurveyResponsesRoute = ApiAdminSurveyResponsesRouteImport.update({
   id: '/api/admin/survey-responses',
   path: '/api/admin/survey-responses',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/api/survey-responses': typeof ApiSurveyResponsesRoute
   '/api/survey-rules': typeof ApiSurveyRulesRoute
   '/api/weather': typeof ApiWeatherRoute
+  '/api/admin/survey-export': typeof ApiAdminSurveyExportRoute
   '/api/admin/survey-responses': typeof ApiAdminSurveyResponsesRoute
   '/api/admin/survey-rules': typeof ApiAdminSurveyRulesRoute
   '/api/admin/weather': typeof ApiAdminWeatherRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/api/survey-responses': typeof ApiSurveyResponsesRoute
   '/api/survey-rules': typeof ApiSurveyRulesRoute
   '/api/weather': typeof ApiWeatherRoute
+  '/api/admin/survey-export': typeof ApiAdminSurveyExportRoute
   '/api/admin/survey-responses': typeof ApiAdminSurveyResponsesRoute
   '/api/admin/survey-rules': typeof ApiAdminSurveyRulesRoute
   '/api/admin/weather': typeof ApiAdminWeatherRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/api/survey-responses': typeof ApiSurveyResponsesRoute
   '/api/survey-rules': typeof ApiSurveyRulesRoute
   '/api/weather': typeof ApiWeatherRoute
+  '/api/admin/survey-export': typeof ApiAdminSurveyExportRoute
   '/api/admin/survey-responses': typeof ApiAdminSurveyResponsesRoute
   '/api/admin/survey-rules': typeof ApiAdminSurveyRulesRoute
   '/api/admin/weather': typeof ApiAdminWeatherRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/api/survey-responses'
     | '/api/survey-rules'
     | '/api/weather'
+    | '/api/admin/survey-export'
     | '/api/admin/survey-responses'
     | '/api/admin/survey-rules'
     | '/api/admin/weather'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/api/survey-responses'
     | '/api/survey-rules'
     | '/api/weather'
+    | '/api/admin/survey-export'
     | '/api/admin/survey-responses'
     | '/api/admin/survey-rules'
     | '/api/admin/weather'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/api/survey-responses'
     | '/api/survey-rules'
     | '/api/weather'
+    | '/api/admin/survey-export'
     | '/api/admin/survey-responses'
     | '/api/admin/survey-rules'
     | '/api/admin/weather'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   ApiSurveyResponsesRoute: typeof ApiSurveyResponsesRoute
   ApiSurveyRulesRoute: typeof ApiSurveyRulesRoute
   ApiWeatherRoute: typeof ApiWeatherRoute
+  ApiAdminSurveyExportRoute: typeof ApiAdminSurveyExportRoute
   ApiAdminSurveyResponsesRoute: typeof ApiAdminSurveyResponsesRoute
   ApiAdminSurveyRulesRoute: typeof ApiAdminSurveyRulesRoute
   ApiAdminWeatherRoute: typeof ApiAdminWeatherRoute
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWeatherRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/survey-export': {
+      id: '/api/admin/survey-export'
+      path: '/api/admin/survey-export'
+      fullPath: '/api/admin/survey-export'
+      preLoaderRoute: typeof ApiAdminSurveyExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/survey-responses': {
       id: '/api/admin/survey-responses'
       path: '/api/admin/survey-responses'
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSurveyResponsesRoute: ApiSurveyResponsesRoute,
   ApiSurveyRulesRoute: ApiSurveyRulesRoute,
   ApiWeatherRoute: ApiWeatherRoute,
+  ApiAdminSurveyExportRoute: ApiAdminSurveyExportRoute,
   ApiAdminSurveyResponsesRoute: ApiAdminSurveyResponsesRoute,
   ApiAdminSurveyRulesRoute: ApiAdminSurveyRulesRoute,
   ApiAdminWeatherRoute: ApiAdminWeatherRoute,

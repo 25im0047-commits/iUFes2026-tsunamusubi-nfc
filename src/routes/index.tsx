@@ -30,8 +30,11 @@ import {
 import { isSurveyId, surveys, type SurveyAnswers } from "../lib/survey";
 import { getInitialWeather } from "../lib/initial-weather";
 import { readSurveyRules, validateRequiredAnswers, type SurveyRules } from "../lib/survey-rules";
+import { defaultSurveyTexts, readSurveyTexts } from "../lib/survey-texts";
 import { participantId, readDraft, storeDraft, clearDraft, pendingAnswers, retainSubmission, clearSubmission } from "../lib/participant";
 import { readPrizeState, receivePrize, PRIZE_STORAGE_KEY } from "../lib/prize";
+import { RESET_STORAGE_KEY } from "../lib/reset-progress";
+import { ProgressReset } from "../components/ProgressReset";
 
 export const Route = createFileRoute("/")({
   loader: () => getInitialWeather(),
@@ -57,6 +60,7 @@ function RallyPage() {
   const [weatherError, setWeatherError] = useState(false);
   const [weatherRetry, setWeatherRetry] = useState(0);
   const [surveyRules, setSurveyRules] = useState<SurveyRules | null>(initialWeather?.rules ?? null);
+  const [surveyTexts, setSurveyTexts] = useState(initialWeather?.texts ?? defaultSurveyTexts());
   const [rulesRetry, setRulesRetry] = useState(0);
   const [submissionBusy, setSubmissionBusy] = useState(false);
   const submissionBusyRef = useRef(false);
@@ -96,19 +100,27 @@ function RallyPage() {
       try {
         const response = await fetch("/api/survey-rules", { cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]) });
         if (!response.ok) throw new Error("Rules unavailable");
-        const rules = readSurveyRules((await response.json()).rules);
+        const data = await response.json();
+        const rules = readSurveyRules(data.rules);
+        const texts = readSurveyTexts(data.texts);
         if (!rules) throw new Error("Invalid rules");
-        if (!stopped) setSurveyRules(rules);
+        if (!stopped) { setSurveyRules(rules); if (texts) setSurveyTexts(texts); }
       } catch { /* Keep the last known rules; the submission API validates current rules. */ }
       finally { inFlight = false; }
     }
-    if (!initialWeather?.rules || rulesRetry > 0) void refresh();
+    if (!initialWeather?.rules || !initialWeather?.texts || rulesRetry > 0) void refresh();
     const timer = window.setInterval(() => void refresh(), 30000);
     const resume = () => void refresh();
     window.addEventListener("focus", resume);
     document.addEventListener("visibilitychange", resume);
     return () => { stopped = true; controller.abort(); clearInterval(timer); window.removeEventListener("focus", resume); document.removeEventListener("visibilitychange", resume); };
   }, [initialWeather, rulesRetry]);
+
+  useEffect(() => {
+    const onReset=(event:StorageEvent)=>{if(event.key===RESET_STORAGE_KEY)window.location.reload();};
+    window.addEventListener("storage",onReset);
+    return ()=>window.removeEventListener("storage",onReset);
+  },[]);
 
   useEffect(() => {
     const sync = () => setPrizeState(readPrizeState());
@@ -573,6 +585,7 @@ function RallyPage() {
           done={isGhostComplete(progress, activeGhost.id)}
           draft={drafts.current[activeGhost.id] || (isSurveyId(activeGhost.id) ? readDraft(activeGhost.id) : emptyDraft)}
           rules={surveyRules}
+          texts={surveyTexts}
           busy={submissionBusy}
           onReloadRules={() => setRulesRetry((count) => count + 1)}
           onDraft={(answers) => {
@@ -632,6 +645,7 @@ function RallyPage() {
           </div>
         </Dialog>
       )}
+      <ProgressReset disabled={submissionBusy} onReset={()=>window.location.assign("/")} />
     </main>
   );
 }

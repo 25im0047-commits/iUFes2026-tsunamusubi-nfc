@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { Ghost } from "../lib/rally";
 import type { SurveyRules } from "../lib/survey-rules";
+import type { SurveyTexts } from "../lib/survey-texts";
 import { pendingAnswers } from "../lib/participant";
 import { PartyEffects, PartyWords } from "./PartyEffects";
 import { FoundStage } from "./FoundEffects";
@@ -118,6 +119,7 @@ export function GhostDialog({
   rules,
   busy,
   onReloadRules,
+  texts,
 }: {
   ghost: Ghost;
   done: boolean;
@@ -127,6 +129,7 @@ export function GhostDialog({
   onClose: () => void;
   storageNotice: ReactNode;
   rules: SurveyRules | null;
+  texts: SurveyTexts;
   busy: boolean;
   onReloadRules: () => void;
 }) {
@@ -156,6 +159,7 @@ export function GhostDialog({
           onDraft={onDraft}
           onFinish={onFinish}
           rules={rules}
+          texts={texts}
           busy={busy}
           onReloadRules={onReloadRules}
         />
@@ -185,12 +189,14 @@ function SurveyForm({
   rules,
   busy,
   onReloadRules,
+  texts,
 }: {
   id: SurveyId;
   draft: SurveyAnswers;
   onDraft: (answers: SurveyAnswers) => void;
   onFinish: (answers: SurveyAnswers) => Promise<Record<string, string>>;
   rules: SurveyRules | null;
+  texts: SurveyTexts;
   busy: boolean;
   onReloadRules: () => void;
 }) {
@@ -237,6 +243,7 @@ function SurveyForm({
         </p>
       )}
       {definition.questions.map((question, index) => {
+        const questionLabel = texts[id][question.id];
         const errorId = `${id}-${question.id}-error`;
         const value = draft[question.id];
         const choices =
@@ -248,7 +255,7 @@ function SurveyForm({
             aria-describedby={errors[question.id] ? errorId : undefined}
           >
             <legend>
-              Q{index + 1}. {question.label}{" "}
+              Q{index + 1}. {questionLabel}{" "}
               <small>
                 {rules?.[id][question.id] !== false ? "必須" : "任意"}{question.kind === "multiple" ? "・複数選択可" : ""}
               </small>
@@ -256,7 +263,7 @@ function SurveyForm({
             {question.kind === "text" ? (
               <>
                 <textarea
-                  aria-label={question.label}
+                  aria-label={questionLabel}
                   value={typeof value === "string" ? value : ""}
                   maxLength={MAX_TEXT_LENGTH}
                   rows={3}

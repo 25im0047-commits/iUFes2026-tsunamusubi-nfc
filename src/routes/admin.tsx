@@ -3,6 +3,7 @@ import { useRef, useState, type FormEvent } from "react";
 import type { WeatherMode } from "../lib/venue";
 import "../admin.css";
 import { SurveyAdmin } from "../components/SurveyAdmin";
+import { ProgressReset } from "../components/ProgressReset";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "会場配置の管理 | iUFes2026" }, { name: "robots", content: "noindex, nofollow" }] }),
@@ -76,5 +77,6 @@ function AdminPage() {
       {error && <p className="admin-error" role="alert">{error}</p>}
     </section>
     {loggedIn && <SurveyAdmin authorization={() => authorization.current} onUnauthorized={logout} />}
+    <ProgressReset disabled={busy} />
   </main>;
 }

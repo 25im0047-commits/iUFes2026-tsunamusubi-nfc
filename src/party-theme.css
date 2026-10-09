@@ -62,6 +62,7 @@ body.party-theme { isolation: isolate; color: #fff; background: linear-gradient(
 .party-theme .dialog .close { position: absolute; z-index: 30; color: #2b1060; background: #ffffffee; box-shadow: 0 0 22px #fff7; }
 .party-theme .dialog > h2 { color: #fff; font-family: var(--party-display); font-size: 22px; font-weight: 400; line-height: 1.5; }
 .party-theme .dialog-location, .party-theme .dialog-detail, .party-theme .conversation-note, .party-theme .survey-help, .party-theme .score-help { color: #fff; }
+.party-theme .survey .score-help { color: #000; }
 .party-theme .dialog-ghost, .party-theme .dialog.bad .dialog-ghost { position: relative; max-width: 240px; border-radius: 50%; background: #ffffff33; box-shadow: 0 0 0 8px #ffffff33, 0 0 36px #fff6; }
 .party-theme .dialog-ghost .ghost-artwork { animation: none; }
 .party-theme .dialog-ghost { animation: party-jump .9s ease-in-out infinite; }

@@ -3,8 +3,12 @@ import { createHash, randomUUID } from "node:crypto";
 import { getDatabase, json, requireAdmin } from "./weather.server.ts";
 import { isSurveyId, surveys, type SurveyId } from "../lib/survey.ts";
 import { defaultSurveyRules, readSurveyRules, validateRequiredAnswers, type SurveyRules, type StoredSurveyAnswer } from "../lib/survey-rules.ts";
+import { defaultSurveyTexts, readSurveyTexts } from "../lib/survey-texts.ts";
+import { surveyCsvHeader, surveyCsvRow } from "../lib/survey-csv.ts";
 
 export const surveySchema = [
+  "CREATE TABLE IF NOT EXISTS iufes2026_question_texts (key TEXT PRIMARY KEY, label TEXT NOT NULL CHECK (length(trim(label)) BETWEEN 1 AND 300))",
+  ...Object.entries(surveys).flatMap(([id,s])=>s.questions.map(q=>({sql:"INSERT OR IGNORE INTO iufes2026_question_texts (key,label) VALUES (?,?)",args:[id+"."+q.id,q.label]}))),
   "CREATE TABLE IF NOT EXISTS iufes2026_question_rules (key TEXT PRIMARY KEY, required INTEGER NOT NULL CHECK (required IN (0,1)))",
   "CREATE TABLE IF NOT EXISTS iufes2026_survey_receipts (id TEXT PRIMARY KEY, participant_id TEXT NOT NULL, ghost_id TEXT NOT NULL CHECK (ghost_id IN ('bad-01','bad-02')), payload_hash TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(participant_id, ghost_id))",
   "CREATE TABLE IF NOT EXISTS iufes2026_survey_answers (id TEXT PRIMARY KEY, answer_version INTEGER NOT NULL, answers_json TEXT NOT NULL CHECK (json_valid(answers_json)), created_at TEXT NOT NULL)",
@@ -12,6 +16,18 @@ export const surveySchema = [
     sql: "INSERT OR IGNORE INTO iufes2026_question_rules (key, required) VALUES (?, 1)", args: [id + "." + q.id],
   }))),
 ];
+export async function getSurveyTexts(db: Pick<Client,"execute">) {
+  const result=defaultSurveyTexts();
+  const rows=(await db.execute("SELECT key,label FROM iufes2026_question_texts")).rows;
+  for(const id of ["bad-01","bad-02"] as const)for(const q of surveys[id].questions){
+    const row=rows.find(r=>r.key===id+"."+q.id);
+    if(!row)throw new Error("Question text missing");
+    result[id][q.id]=String(row.label);
+  }
+  const checked=readSurveyTexts(result);
+  if(!checked)throw new Error("Invalid question text");
+  return checked;
+}
 export async function getSurveyRules(db: Pick<Client, "execute">): Promise<SurveyRules> {
   const result = await db.execute("SELECT key, required FROM iufes2026_question_rules");
   const rules = defaultSurveyRules();
@@ -33,8 +49,8 @@ async function body(request: Request) {
 class ApiError extends Error { status: number; constructor(status: number, message: string) { super(message); this.status = status; } }
 function uuid(value: unknown) { return typeof value === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value); }
 
-export async function surveyResponse(request: Request, kind: "rules" | "submit" | "admin-rules" | "admin-answers", suppliedDb?: Client) {
-  const allowed = kind === "rules" ? ["GET"] : kind === "submit" ? ["POST"] : kind === "admin-rules" ? ["GET", "PUT"] : ["GET", "DELETE"];
+export async function surveyResponse(request: Request, kind: "rules" | "submit" | "admin-rules" | "admin-answers" | "admin-export", suppliedDb?: Client) {
+  const allowed = kind === "rules" || kind === "admin-export" ? ["GET"] : kind === "submit" ? ["POST"] : kind === "admin-rules" ? ["GET", "PUT"] : ["GET", "DELETE"];
   if (!allowed.includes(request.method)) return json({ error: "この操作は許可されていません。" }, 405);
   let db: Client | undefined;
   try {
@@ -43,16 +59,37 @@ export async function surveyResponse(request: Request, kind: "rules" | "submit" 
       const denied = await requireAdmin(request, db);
       if (denied) return denied;
     }
-    if (kind === "rules" || (kind === "admin-rules" && request.method === "GET")) return json({ rules: await getSurveyRules(db) });
+    if (kind === "rules" || (kind === "admin-rules" && request.method === "GET")) {
+      const [rules,texts]=await Promise.all([getSurveyRules(db),getSurveyTexts(db)]);
+      return json({rules,texts});
+    }
     if (kind === "admin-rules") {
       const input = await body(request);
       const rules = readSurveyRules(input?.rules);
       if (!rules) throw new ApiError(400, "全質問の必須・任意を設定してください。");
+      const texts=input.texts===undefined?null:readSurveyTexts(input.texts);
+      if(input.texts!==undefined && !texts)throw new ApiError(400,"質問文は空欄にせず、300文字以内で入力してください。");
       await db.batch(Object.entries(surveys).flatMap(([id, survey]) => survey.questions.map(q => ({
         sql: "UPDATE iufes2026_question_rules SET required = ? WHERE key = ?",
         args: [rules[id as SurveyId][q.id] ? 1 : 0, id + "." + q.id],
-      }))), "write");
-      return json({ rules: await getSurveyRules(db) });
+      }))).concat(texts ? Object.entries(surveys).flatMap(([id,s])=>s.questions.map(q=>({sql:"UPDATE iufes2026_question_texts SET label = ? WHERE key = ?",args:[texts[id as SurveyId][q.id],id+"."+q.id]}))) : []), "write");
+      return json({ rules: await getSurveyRules(db), texts: await getSurveyTexts(db) });
+    }
+    if(kind === "admin-export") {
+      const ghost=new URL(request.url).searchParams.get("ghost");
+      if(ghost && !isSurveyId(ghost))throw new ApiError(400,"おばけの選択を確認してください。");
+      const texts=await getSurveyTexts(db);
+      const tx=await db.transaction("read");
+      let csv=surveyCsvHeader(texts);
+      try{
+        for(let offset=0;;offset+=250){
+          const rows=(await tx.execute({sql:"SELECT a.id,r.participant_id,r.ghost_id,a.answer_version,a.answers_json,a.created_at FROM iufes2026_survey_answers a JOIN iufes2026_survey_receipts r ON a.id=r.id"+(ghost?" WHERE r.ghost_id = ?":"")+" ORDER BY a.created_at DESC,a.id DESC LIMIT 250 OFFSET ?",args:ghost?[ghost,offset]:[offset]})).rows;
+          for(const r of rows)csv+=surveyCsvRow({id:String(r.id),participantId:String(r.participant_id),ghostId:r.ghost_id as SurveyId,version:Number(r.answer_version),answers:JSON.parse(String(r.answers_json)),createdAt:String(r.created_at)});
+          if(rows.length<250)break;
+        }
+        await tx.commit();
+      }finally{tx.close();}
+      return new Response(csv,{headers:{"Content-Type":"text/csv; charset=utf-8","Cache-Control":"no-store","Content-Disposition":'attachment; filename="iufes2026-survey-answers.csv"',"X-Content-Type-Options":"nosniff"}});
     }
     if (kind === "admin-answers") {
       if (request.method === "DELETE") {

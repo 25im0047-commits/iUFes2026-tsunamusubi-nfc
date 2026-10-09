@@ -46,6 +46,9 @@ body::after {
 }
 #root, body > * { position: relative; z-index: 1; }
 button, input, textarea, select, option { font: inherit; }
+.prototype-reset { position: relative; z-index: 1; margin: 36px auto 0; padding: 24px 12px; text-align: center; color: #fff; font-size: 12px; line-height: 1.8; }
+.prototype-reset button { min-height: 44px; padding: 10px 18px; border: 2px solid #ffffffaa; border-radius: 12px; background: #2b1060; color: #fff; cursor: pointer; font-weight: 700; }
+.prototype-reset button:disabled { opacity: .5; cursor: wait; }
 h1, h2 { font-weight: 900; }
 
 /* ===== page sheet ===== */

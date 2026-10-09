@@ -74,7 +74,7 @@ test("SSR sends the shared rainy setting with the document and preloads the plai
 });
 
 test("survey routes reach JSON handlers and fail closed without DB configuration",async()=>{
- for(const [path,method] of [["/api/survey-rules","GET"],["/api/survey-responses","POST"],["/api/admin/survey-rules","GET"],["/api/admin/survey-responses","GET"]]){
+ for(const [path,method] of [["/api/survey-rules","GET"],["/api/survey-responses","POST"],["/api/admin/survey-rules","GET"],["/api/admin/survey-responses","GET"],["/api/admin/survey-export","GET"]]){
   const response=await handler.fetch(new Request("https://rally.example"+path,{method}));
   assert.equal(response.status,503);assert.match(response.headers.get("content-type"),/application\/json/);
   assert.equal(response.headers.get("cache-control"),"no-store");assert.ok((await response.json()).error);

@@ -3,6 +3,8 @@ import { createClient } from "@libsql/client";
 import { schema, weatherResponse } from "../../src/server/weather.server";
 import { surveySchema, surveyResponse } from "../../src/server/surveys.server";
 import { surveys } from "../../src/lib/survey";
+import { RESETTABLE_KEYS } from "../../src/lib/reset-progress";
+import { STORAGE_KEY, LEGACY_STORAGE_KEY, PREVIOUS_STORAGE_KEY } from "../../src/lib/rally";
 test("admin login writes shared SQL weather and another participant picks it up without losing stamps",async({page,context},testInfo)=>{
  const db=createClient({url:":memory:"});
  process.env.ADMIN_USER="test-operator"; process.env.ADMIN_PASSWORD="test-only-password";
@@ -12,7 +14,7 @@ test("admin login writes shared SQL weather and another participant picks it up 
   const r=route.request();
   const req=new Request(r.url(),{method:r.method(),headers:r.headers(),...(r.postData()?{body:r.postData()!}:{})});
   const path=new URL(req.url).pathname;
-  const response=path.includes("survey") ? await surveyResponse(req,path==="/api/admin/survey-rules"?"admin-rules":path==="/api/admin/survey-responses"?"admin-answers":path==="/api/survey-rules"?"rules":"submit",db) : await weatherResponse(req,path==="/api/admin/weather",db);
+  const response=path.includes("survey") ? await surveyResponse(req,path==="/api/admin/survey-export"?"admin-export":path==="/api/admin/survey-rules"?"admin-rules":path==="/api/admin/survey-responses"?"admin-answers":path==="/api/survey-rules"?"rules":"submit",db) : await weatherResponse(req,path==="/api/admin/weather",db);
   await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:await response.text()});
  });
  try{
@@ -45,20 +47,43 @@ test("admin login writes shared SQL weather and another participant picks it up 
   }
   expect(await page.evaluate(()=>Object.values(localStorage).some(value=>value.includes("test-only-password")))).toBe(false);
   await page.getByRole("checkbox").first().uncheck();
+  await page.getByLabel("メデューサ Q1の質問文",{exact:true}).fill("あなたのことを教えてね！");
   await page.getByRole("button",{name:"質問設定を保存",exact:true}).click();
-  await expect(page.getByText("質問の必須設定を保存しました。",{exact:true})).toBeVisible();
+  await expect(page.getByText("質問文と必須設定を保存しました。",{exact:true})).toBeVisible();
+  expect((await db.execute("SELECT label FROM iufes2026_question_texts WHERE key='bad-01.visitor'")).rows[0].label).toBe("あなたのことを教えてね！");
   expect((await db.execute("SELECT required FROM iufes2026_question_rules WHERE key='bad-01.visitor'")).rows[0].required).toBe(0);
   const answers=Object.fromEntries(surveys["bad-01"].questions.map(q=>[q.id,q.kind==="multiple"?[q.options![0].id]:q.kind==="score"?"0":q.options![0].id]));
   const submission=await surveyResponse(new Request("https://rally.local/api/survey-responses",{method:"POST",headers:{origin:"https://rally.local","content-type":"application/json"},body:JSON.stringify({participantId:"12345678-1234-1234-1234-123456789abc",ghostId:"bad-01",version:2,answers})}),"submit",db);
   expect(submission.status).toBe(201);
   await page.getByRole("button",{name:"一覧を再取得"}).click();
   await expect(page.locator("details")).toHaveCount(1);
+  const downloading=page.waitForEvent("download");
+  await page.getByRole("button",{name:"回答をCSVでダウンロード",exact:true}).click();
+  const downloaded=await downloading;
+  expect(downloaded.suggestedFilename()).toBe("iufes2026-survey-answers.csv");
+  const csv=await (await import("node:fs/promises")).readFile((await downloaded.path())!,"utf8");
+  expect(csv).toContain("あなたのことを教えてね！");expect(csv).toContain("小学生");
   await page.locator("summary").click();
   await expect(page.locator("dd")).toContainText(["小学生","ポスター・チラシ","めっちゃたのしかった！","0"]);
   await page.getByLabel("おばけで絞り込み").selectOption("bad-02");
   await expect(page.getByText("回答はありません。",{exact:true})).toBeVisible();
   await page.getByLabel("おばけで絞り込み").selectOption("bad-01");
   await expect(page.locator("details")).toHaveCount(1);
+  await participant.evaluate(({key,legacy,previous})=>{
+    const raw=localStorage.getItem(key)!;localStorage.setItem(legacy,raw);localStorage.setItem(previous,raw);
+    localStorage.setItem("unrelated-test-data","keep");
+  },{key:STORAGE_KEY,legacy:LEGACY_STORAGE_KEY,previous:PREVIOUS_STORAGE_KEY});
+  page.once("dialog",dialog=>dialog.dismiss());
+  await page.getByRole("button",{name:"この端末の進捗をリセット",exact:true}).click();
+  expect(await participant.evaluate(key=>localStorage.getItem(key),STORAGE_KEY)).not.toBeNull();
+  page.once("dialog",dialog=>dialog.accept());
+  await page.getByRole("button",{name:"この端末の進捗をリセット",exact:true}).click();
+  await expect(page.getByText("この端末の進捗をリセットしました。",{exact:true})).toBeVisible();
+  await expect(participant.getByRole("button",{name:"ぼうけんを はじめる！",exact:true})).toBeVisible();
+  expect(await page.evaluate(keys=>keys.every(key=>localStorage.getItem(key)===null),RESETTABLE_KEYS)).toBe(true);
+  expect(await page.evaluate(()=>localStorage.getItem("unrelated-test-data"))).toBe("keep");
+  await expect(page.getByRole("button",{name:"ログアウト",exact:true})).toBeVisible();
+  expect((await db.execute("SELECT COUNT(*) AS n FROM iufes2026_survey_answers")).rows[0].n).toBe(1);
   page.once("dialog",dialog=>dialog.accept());
   await page.getByRole("button",{name:"この回答を削除",exact:true}).click();
   await expect(page.getByText("回答を削除しました。",{exact:true})).toBeVisible();
